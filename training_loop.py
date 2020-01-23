@@ -3,79 +3,82 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import torch.optim as optim
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.tensorboard import SummaryWriter
+from utils import Initial_dataset_loader
 import tqdm
 import pickle, copyreg
+import os
 
-if __name__ == "__main__":
-    writer = SummaryWriter()
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    if torch.cuda.is_available():
-        print("Using GPU")
+class Trainer:
+    def __init__(self,name, network, train_dataloader, test_dataloader, criterion, optimizer, scheduler = None):
+        self.name = name
+        self.net = network
+        self.train_dataloader = train_dataloader
+        self.test_dataloader = test_dataloader
 
-    training_transforms = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.RandomCrop(224),
-        transforms.ToTensor(),
-    ])
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            print("Using GPU")
 
-    testing_transforms = transforms.Compose([
-        transforms.ToPILImage(),
-        transforms.FiveCrop(224),
-        transforms.Lambda(lambda crops: torch.stack([transforms.ToTensor()(crop) for crop in crops])),
-    ])
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.scheduler = scheduler
 
-    train_dataset = USGDataset("train_dataset.pkl", training_transforms)
-    val_dataset = USGDataset("validation_dataset.pkl", testing_transforms)
+    def train(self, number_of_epochs):
+        writer = SummaryWriter(log_dir='experiments/'+str(self.name))
+        device = self.device
+        train_dataloader = self.train_dataloader
+        test_dataloader = self.test_dataloader
+        net = self.net
+        criterion = self.criterion
+        optimizer = self.optimizer
+        scheduler = self.scheduler
+        net.to(device)
 
-    train_dataloader = DataLoader(train_dataset, 16, shuffle=True, num_workers=0)
-    test_dataloader = DataLoader(val_dataset, 16, shuffle=False, num_workers=0)
+        # criterion = self.criterion
+        # optimizer = optim.SGD(net.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
+        # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 200, 250], gamma=0.1)
 
-    net = ResidualAttentionModel_56()
-    net.to(device)
-
-    criterion = nn.BCELoss()
-    optimizer = optim.SGD(net.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
-    scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 200, 250], gamma=0.1)
-
-    for epoch in tqdm.tqdm(range(300)):  # loop over the dataset multiple times
-        running_loss = 0.0
-        for i, data in enumerate(train_dataloader, 0):
-            inputs = data['image'].to(device)
-            labels = data['label'].float().to(device)
-
-            optimizer.zero_grad()
-
-            outputs = net(inputs).view(-1)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-            if i % 10 == 9:
-                writer.add_scalar("Loss/train", running_loss/10, i+epoch*len(train_dataloader))
-                running_loss = 0.0
-
-        number = 0
-        loss_sum = 0
-        total = 0
-        correct = 0
-        with torch.no_grad():
-            for i, data in enumerate(test_dataloader, 0):
+        for epoch in tqdm.tqdm(range(number_of_epochs)):
+            running_loss = 0.0
+            for i, data in enumerate(train_dataloader, 0):
                 inputs = data['image'].to(device)
-                labels = data['label'].float().to(device)
-                bs, ncrops, c, h, w = inputs.size()
-                result = net(inputs.view(-1, c, h, w))
-                result_avg = result.view(bs, ncrops, -1).mean(1)
-                loss = criterion(result_avg.view(-1), labels)
-                predicted = torch.round(result_avg.view(-1))
-                number += 1
-                loss_sum += loss.item()
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
-        writer.add_scalar("Loss/test", running_loss/number, epoch)
-        writer.add_scalar("Accuracy/test", correct/total, epoch)
+                labels = data['label'].to(device)
 
-    PATH = './Res_56_new.pth'
-    torch.save(net.state_dict(), PATH)
+                optimizer.zero_grad()
+                outputs = net(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+                if i % 10 == 9:
+                    writer.add_scalar("Loss/train", running_loss/10, i+epoch*len(train_dataloader))
+                    running_loss = 0.0
+
+            number = 0
+            loss_sum = 0
+            total = 0
+            correct = 0
+            with torch.no_grad():
+                for i, data in enumerate(test_dataloader, 0):
+                    inputs = data['image'].to(device)
+                    labels = data['label'].to(device)
+
+                    optimizer.zero_grad()
+                    outputs = net(inputs)
+                    loss = criterion(outputs, labels)
+                    predicted = torch.max(outputs, 1).indices
+                    number += 1
+                    loss_sum += loss.item()
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+            writer.add_scalar("Loss/test", running_loss/number, epoch)
+            writer.add_scalar("Accuracy/test", correct/total, epoch)
+
+        if not os.path.exists('models/'+self.name):
+            os.mkdir('experiments/'+self.name+'/model_weights')
+        PATH = 'experiments/'+self.name+'/model_weights/model.pth'
+        torch.save(net.state_dict(), PATH)
 
