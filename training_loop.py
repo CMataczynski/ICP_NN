@@ -53,7 +53,7 @@ class Trainer:
                 optimizer.step()
 
                 running_loss += loss.item()
-                if i % 10 == 9:
+                if i + epoch * len(train_dataloader) % 10 == 9:
                     writer.add_scalar("Loss/train", running_loss/10, i+epoch*len(train_dataloader))
                     running_loss = 0.0
 
@@ -82,3 +82,59 @@ class Trainer:
         PATH = 'experiments/'+self.name+'/model_weights/model.pth'
         torch.save(net.state_dict(), PATH)
 
+def loss_function(recon_x, x, mu, logvar):
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 200), reduction='sum')
+    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return BCE + KLD
+
+class VAETrainer:
+    def __init__(self, name, network, train_dataloader, test_dataloader, optimizer, scheduler = None):
+        self.name = name
+        self.net = network
+        self.train_dataloader = train_dataloader
+        self.test_dataloader = test_dataloader
+
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            print("Using GPU")
+
+        self.criterion = loss_function
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+
+    def train(self, number_of_epochs):
+        writer = SummaryWriter(log_dir='experiments/' + str(self.name))
+        device = self.device
+        train_dataloader = self.train_dataloader
+        test_dataloader = self.test_dataloader
+        net = self.net
+        criterion = self.criterion
+        optimizer = self.optimizer
+        scheduler = self.scheduler
+        net.to(device)
+
+        # criterion = self.criterion
+        # optimizer = optim.SGD(net.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
+        # scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[100, 200, 250], gamma=0.1)
+
+        for epoch in tqdm.tqdm(range(number_of_epochs)):
+            running_loss = 0.0
+            for i, data in enumerate(train_dataloader, 0):
+                inputs = data['image'].to(device)
+                labels = data['label'].to(device)
+
+                optimizer.zero_grad()
+                recon_batch, mu, logvar = net(inputs)
+                loss = loss_function(recon_batch, inputs, mu, logvar)
+                loss.backward()
+                optimizer.step()
+
+                running_loss += loss.item()
+                if i + epoch * len(train_dataloader) % 10 == 9:
+                    writer.add_scalar("Loss/train", running_loss / 10, i + epoch * len(train_dataloader))
+                    running_loss = 0.0
+
+        if not os.path.exists('models/' + self.name):
+            os.mkdir('experiments/' + self.name + '/model_weights')
+        PATH = 'experiments/' + self.name + '/model_weights/model.pth'
+        torch.save(net.state_dict(), PATH)

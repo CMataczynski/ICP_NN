@@ -3,13 +3,13 @@ import torch.nn.functional as F
 
 
 class FCmodel(nn.Module):
-    def __init__(self, in_features, out_features):
+    def __init__(self, in_features, out_features, hidden1=32, hidden2=16):
         super(FCmodel, self).__init__()
-        self.input_layer = nn.Linear(in_features, 100)
+        self.input_layer = nn.Linear(in_features, hidden1)
         self.dropout0 = nn.Dropout(0)
-        self.hidden_layer_1 = nn.Linear(100, 50)
+        self.hidden_layer_1 = nn.Linear(hidden1, hidden2)
         self.dropout1 = nn.Dropout(0)
-        self.output_layer = nn.Linear(50, out_features)
+        self.output_layer = nn.Linear(hidden2, out_features)
 
     def forward(self, X, **kwargs):
         X = F.relu(self.dropout0(self.input_layer(X)))
