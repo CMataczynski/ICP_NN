@@ -39,7 +39,7 @@ class Initial_dataset_loader(Dataset):
         #if self.transforms:
         #    image = self.transforms(image)
         if 'id' in self.whole_set:
-            label = torch.tensor(self.whole_set['id'][idx])
+            label = self.whole_set['id'][idx].clone().detach()
 
         return {
             "image": data,

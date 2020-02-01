@@ -6,7 +6,7 @@ from utils import Initial_dataset_loader
 from torch.utils.data import DataLoader
 from training_loop import Trainer, VAETrainer
 from models.FCmodel import FCmodel
-from models.RNNmodel import LSTM
+from models.RNNmodel import LSTM, GRU, LSTMFCN
 from models.AEmodel import VAE
 
 
@@ -45,10 +45,10 @@ if __name__ == "__main__":
             if var > max:
                 max = var
     name = name + "_" + str(max+1)
-    
+
     model = VAE()
     dataset = "initial_dataset"
-    criterion = nn.CrossEntropyLoss(reduction='mean')
+    criterion = nn.NLLLoss()
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005)

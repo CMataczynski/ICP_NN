@@ -8,6 +8,8 @@ from torch.utils.tensorboard import SummaryWriter
 from utils import Initial_dataset_loader
 import tqdm
 import pickle, copyreg
+import numpy as np
+from sklearn.svm import SVC
 import os
 
 class Trainer:
@@ -51,7 +53,6 @@ class Trainer:
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
-
                 running_loss += loss.item()
                 if i + epoch * len(train_dataloader) % 10 == 9:
                     writer.add_scalar("Loss/train", running_loss/10, i+epoch*len(train_dataloader))
@@ -61,6 +62,10 @@ class Trainer:
             loss_sum = 0
             total = 0
             correct = 0
+            # if epoch % 20 == 19:
+            #     for tag, parm in net.named_parameters():
+            #         writer.add_histogram(tag, parm.grad.data.cpu().numpy(), epoch)
+
             with torch.no_grad():
                 for i, data in enumerate(test_dataloader, 0):
                     inputs = data['image'].to(device)
@@ -133,6 +138,35 @@ class VAETrainer:
                 if i + epoch * len(train_dataloader) % 10 == 9:
                     writer.add_scalar("Loss/train", running_loss / 10, i + epoch * len(train_dataloader))
                     running_loss = 0.0
+            with torch.no_grad():
+                outputs = None
+                all_labels = None
+                for i, data in enumerate(train_dataloader, 0):
+                    inputs = data['image'].to(device)
+                    labels = data['label'].to(device)
+                    optimizer.zero_grad()
+                    if outputs is None:
+                        logvar, mu = net.encode(inputs)
+                        outputs = net.reparameterize(logvar, mu)
+                        all_labels = labels
+                    else:
+                        logvar, mu = net.encode(inputs)
+                        outputs = torch.cat(outputs, net.reparameterize(logvar, mu))
+                        all_labels = torch.cat(all_labels, labels)
+                model = SVC()
+                model.fit(outputs.numpy(), all_labels.numpy())
+                correct = 0
+                total = 0
+                for i, data in enumerate(test_dataloader, 0):
+                    inputs = data['image'].to(device)
+                    labels = data['label'].numpy()
+                    optimizer.zero_grad()
+                    logvar, mu = net.encode(inputs)
+                    outputs = net.reparameterize(logvar, mu)
+                    predicted = model.predict(outputs.numpy())
+                    total += len(labels)
+                    correct += np.sum(predicted == labels)
+                writer.add_scalar("Accuracy/test", correct / total, epoch)
 
         if not os.path.exists('models/' + self.name):
             os.mkdir('experiments/' + self.name + '/model_weights')
