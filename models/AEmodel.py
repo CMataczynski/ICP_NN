@@ -6,11 +6,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
 
-        self.fc1 = nn.Linear(200, 32)
+        self.fc1 = nn.Linear(180, 32)
         self.fc21 = nn.Linear(32, 8)
         self.fc22 = nn.Linear(32, 8)
         self.fc3 = nn.Linear(8, 32)
-        self.fc4 = nn.Linear(32, 200)
+        self.fc4 = nn.Linear(32, 180)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -26,6 +26,6 @@ class VAE(nn.Module):
         return torch.sigmoid(self.fc4(h3))
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 200))
+        mu, logvar = self.encode(x.view(-1, 180))
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar

@@ -13,12 +13,11 @@ from sklearn.svm import SVC
 import os
 
 class Trainer:
-    def __init__(self,name, network, train_dataloader, test_dataloader, criterion, optimizer, scheduler = None):
+    def __init__(self,name, network, train_dataloader, test_dataloader, criterion, optimizer, scheduler=None):
         self.name = name
         self.net = network
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
-
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
             print("Using GPU")
@@ -32,7 +31,7 @@ class Trainer:
         device = self.device
         train_dataloader = self.train_dataloader
         test_dataloader = self.test_dataloader
-        net = self.net
+        net = self.net.double()
         criterion = self.criterion
         optimizer = self.optimizer
         scheduler = self.scheduler
@@ -45,11 +44,11 @@ class Trainer:
         for epoch in tqdm.tqdm(range(number_of_epochs)):
             running_loss = 0.0
             for i, data in enumerate(train_dataloader, 0):
-                inputs = data['image'].to(device)
+                inputs = data['image'].double().to(device)
                 labels = data['label'].to(device)
 
                 optimizer.zero_grad()
-                outputs = net(inputs)
+                outputs = net(inputs).double()
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
@@ -68,11 +67,11 @@ class Trainer:
 
             with torch.no_grad():
                 for i, data in enumerate(test_dataloader, 0):
-                    inputs = data['image'].to(device)
+                    inputs = data['image'].double().to(device)
                     labels = data['label'].to(device)
 
                     optimizer.zero_grad()
-                    outputs = net(inputs)
+                    outputs = net(inputs).double()
                     loss = criterion(outputs, labels)
                     predicted = torch.max(outputs, 1).indices
                     number += 1

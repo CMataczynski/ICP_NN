@@ -13,20 +13,45 @@ def files(path):
 
 
 class Initial_dataset_loader(Dataset):
-    def __init__(self, dataset_folder, transforms=None):
-
+    def __init__(self, dataset_folder, transforms=None, full=False):
+        padding_minimum = torch.zeros(180)
         dataframes = []
         labels =[]
-
+        add = False
         for file in files(dataset_folder):
-            dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
-            labels.append(int(file[1])-1)
+            add = True
+            prefix = file.split("_")[0]
+            if "T" in prefix:
+                labels.append(int(prefix[1]) - 1)
+            elif "A" in prefix:
+                add = full and add
+                if add:
+                    labels.append(4)
+            else:
+                add = full and add
+                if add:
+                    labels.append(5)
+            if add:
+                dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
+        tensors = []
+        for df in dataframes:
+            tensors.append(torch.tensor(df.iloc[:,1:].values[:,0], dtype=torch.double))
+        tensors.append(padding_minimum)
+        tensors = torch.nn.utils.rnn.pad_sequence(tensors, batch_first=True)
+        tensors = tensors[:-1]
+        print(tensors.shape)
         self.whole_set = {
-            'data': torch.tensor([df.iloc[:,1:].values[:,0] for df in dataframes],dtype=torch.float),
-            'id': torch.tensor(labels,dtype=torch.long).view(-1)
+            'data': tensors,
+            'id': torch.tensor(labels, dtype=torch.long).view(-1)
         }
         self.transforms = transforms
         self.length = len(self.whole_set['id'])
+
+    def get_class_weights(self):
+        ids = self.whole_set["id"].numpy()
+        unique, counts = np.unique(ids, return_counts=True)
+        counts = 1 - (counts/len(ids))+(1/len(unique))
+        return torch.tensor(counts)
 
     def __len__(self):
         return self.length

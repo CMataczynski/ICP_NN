@@ -11,19 +11,23 @@ from models.AEmodel import VAE
 
 
 class Manager:
-    def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE = False):
+    def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE = False, full=False):
         self.experiment_name = experiment_name
         self.model = model
         self.datasets = os.path.join(os.getcwd(), "datasets", dataset)
-        self.train_dataset = Initial_dataset_loader(self.datasets)
-        self.train_dataloader = DataLoader(self.train_dataset, 4, shuffle=True, num_workers=0)
+        self.train_dataset_path = os.path.join(self.datasets, "train")
+        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full)
+        self.train_dataloader = DataLoader(self.train_dataset, 64, shuffle=True, num_workers=0)
+        self.test_dataset_path = os.path.join(self.datasets, "test")
+        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full = full)
+        self.test_dataloader = DataLoader(self.test_dataset, 64, shuffle=True, num_workers=0)
         self.criterion = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
         if not VAE:
-            self.trainer = Trainer(experiment_name,self.model, self.train_dataloader, self.train_dataloader, criterion, optimizer, scheduler)
+            self.trainer = Trainer(experiment_name, self.model, self.train_dataloader, self.test_dataloader, criterion, optimizer, scheduler)
         else:
-            self.trainer = VAETrainer(experiment_name, self.model, self.train_dataloader, self.train_dataloader,
+            self.trainer = VAETrainer(experiment_name, self.model, self.train_dataloader, self.test_dataloader,
                                    optimizer, scheduler)
     def run(self, number_of_epochs):
         self.trainer.train(number_of_epochs)
