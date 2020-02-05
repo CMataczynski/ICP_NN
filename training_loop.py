@@ -10,6 +10,7 @@ import tqdm
 import pickle, copyreg
 import numpy as np
 from sklearn.svm import SVC
+from sklearn.metrics import f1_score
 import os
 
 class Trainer:
@@ -18,7 +19,7 @@ class Trainer:
         self.net = network
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
             print("Using GPU")
 
@@ -66,6 +67,8 @@ class Trainer:
             #         writer.add_histogram(tag, parm.grad.data.cpu().numpy(), epoch)
 
             with torch.no_grad():
+                preds = []
+                labs = []
                 for i, data in enumerate(test_dataloader, 0):
                     inputs = data['image'].double().to(device)
                     labels = data['label'].to(device)
@@ -74,12 +77,15 @@ class Trainer:
                     outputs = net(inputs).double()
                     loss = criterion(outputs, labels)
                     predicted = torch.max(outputs, 1).indices
+                    preds += predicted.tolist()
+                    labs += labels.tolist()
                     number += 1
                     loss_sum += loss.item()
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
             writer.add_scalar("Loss/test", running_loss/number, epoch)
             writer.add_scalar("Accuracy/test", correct/total, epoch)
+            writer.add_scalar("F1_score/test", f1_score(labs, preds, average='weighted'), epoch)
 
         if not os.path.exists('models/'+self.name):
             os.mkdir('experiments/'+self.name+'/model_weights')
@@ -156,6 +162,8 @@ class VAETrainer:
                 model.fit(outputs.numpy(), all_labels.numpy())
                 correct = 0
                 total = 0
+                labs = []
+                preds = []
                 for i, data in enumerate(test_dataloader, 0):
                     inputs = data['image'].to(device)
                     labels = data['label'].numpy()
@@ -163,9 +171,12 @@ class VAETrainer:
                     logvar, mu = net.encode(inputs)
                     outputs = net.reparameterize(logvar, mu)
                     predicted = model.predict(outputs.numpy())
+                    preds+=predicted.tolist()
+                    labs+=labels.tolist()
                     total += len(labels)
                     correct += np.sum(predicted == labels)
                 writer.add_scalar("Accuracy/test", correct / total, epoch)
+                writer.add_scalar("F1_score/test", f1_score(labs, preds, average='weighted'), epoch)
 
         if not os.path.exists('models/' + self.name):
             os.mkdir('experiments/' + self.name + '/model_weights')

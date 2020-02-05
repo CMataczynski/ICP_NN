@@ -9,6 +9,7 @@ from models.FCmodel import FCmodel
 from models.RNNmodel import LSTM, GRU, LSTMFCN
 from models.AEmodel import VAE
 from experiment_manager import Manager
+import torch
 import numpy as np
 
 if __name__ == "__main__":
@@ -22,6 +23,9 @@ if __name__ == "__main__":
     weights = train_dataset.get_class_weights()
     train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
     weights_6cls = train_dataset.get_class_weights()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    weights_6cls = weights_6cls.to(device)
+    weights = weights.to(device)
     train_dataset = None
     log = []
     for name in names:
@@ -40,12 +44,11 @@ if __name__ == "__main__":
             dataset = "full_dataset"
             criterion = nn.CrossEntropyLoss(weights)
 
-            try:
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
+            
+            optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+            manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+            manager.run(1000)
+            
             max = max+1
 
 
