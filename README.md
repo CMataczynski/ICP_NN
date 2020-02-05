@@ -34,6 +34,8 @@ conda env create -f environment.yml
     |-Experiment management class, example of learning the network
 -experiment_batch.py
     |-Multiple experiments management structure
+-reformat_dataset.py
+    |-Script for transforming raw dataset into training and testing datasets with unique id's and mapping
 ```
 ## Running the learning process
 ```
