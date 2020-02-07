@@ -9,6 +9,11 @@ conda env create -f environment.yml
 ```
 [.] - folder
 --[datasets]
+    |--[full_corrected_dataset]
+    |   |--[train]
+    |   |   |-files in the form Class_ID.csv
+    |   |--[test]
+    |   |   |-files in the form Class_ID.csv
     |--[full_dataset]
     |   |--[train]
     |   |   |-files in the form Class_ID.csv
@@ -17,6 +22,8 @@ conda env create -f environment.yml
     |--[initial_dataset]
     |   |-4 csv's
     |--[RAW_dataset]
+    |   |-provided dataset
+    |--[RAW_corrected_dataset]
     |   |-provided dataset
 --[experiments]
     |--[ModelName_ID]
@@ -27,7 +34,7 @@ conda env create -f environment.yml
 --[models]
     |-Files with code for the models
 -utils.py:
-    |-Dataset loader class
+    |-Dataset loader class, other utility functions
 -training_loop.py:
     |-Training loop with tensorboard hooks and saver
 -experiment_manager.py:
