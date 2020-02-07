@@ -44,6 +44,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 4)
             name_full = name + "_4cls_weighted"
@@ -55,6 +56,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 4)
             name_full = name + "_4cls"
@@ -65,6 +67,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 4)
             name_full = name + "_4cls"
@@ -76,6 +79,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 4)
             name_full = name + "_4cls"
@@ -86,6 +90,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 5)
             name_full = name + "_5cls_weighted"
@@ -96,6 +101,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 5)
             name_full = name + "_5cls_weighted"
@@ -107,6 +113,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 5)
             name_full = name + "_5cls_weighted"
@@ -117,6 +124,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 5)
             name_full = name + "_5cls"
@@ -127,6 +135,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 5)
             name_full = name + "_5cls"
@@ -140,6 +149,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = FCmodel(180, 5)
             name_full = name + "_5cls"
@@ -152,6 +162,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
         if name == "LSTM_full":
             model = LSTM()
@@ -165,6 +176,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM(output_size=5)
             name_full = name + "_5cls"
@@ -175,6 +187,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM()
             name_full = name + "_4cls_weighted"
@@ -185,6 +198,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM(output_size=5)
             name_full = name + "_5cls_weighted"
@@ -197,6 +211,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM(hidden_layer_size=16)
             name_full = name + "_4cls_hidden"
@@ -209,6 +224,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM(hidden_layer_size=16, output_size=5)
             name_full = name + "_5cls_hidden"
@@ -221,6 +237,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM(hidden_layer_size=16, bidirectional=True)
             name_full = name + "_4cls_hidden_bidir_weighted"
@@ -233,6 +250,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTM(hidden_layer_size=16, output_size=5, bidirectional=True)
             name_full = name + "_5cls_hidden_bidir_weighted"
@@ -245,6 +263,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
         if name == "GRU_full":
             model = GRU()
@@ -258,6 +277,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU(output_size=5)
             name_full = name + "_5cls"
@@ -270,6 +290,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU()
             name_full = name + "_4cls_weighted"
@@ -282,6 +303,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU(output_size=5)
             name_full = name + "_5cls_weighted"
@@ -294,6 +316,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU(hidden_layer_size=16)
             name_full = name + "_4cls_hidden"
@@ -306,6 +329,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU(hidden_layer_size=16, output_size=5)
             name_full = name + "_5cls_hidden"
@@ -318,6 +342,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU(hidden_layer_size=16, bidirectional=True)
             name_full = name + "_4cls_hidden_bidir_weighted"
@@ -330,6 +355,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = GRU(hidden_layer_size=16, output_size=5, bidirectional=True)
             name_full = name + "_5cls_hidden_bidir_weighted"
@@ -342,6 +368,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
         if name == "LSTM_FCN_full":
             model = LSTMFCN(180, 4)
@@ -355,6 +382,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTMFCN(180, 6)
             name_full = name + "_5cls"
@@ -367,6 +395,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTMFCN(180, 4)
             name_full = name + "_4cls_weighted"
@@ -379,6 +408,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = LSTMFCN(180, 5)
             name_full = name + "_5cls_weighted"
@@ -391,6 +421,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
         if name == "VAE":
             model = VAE()
@@ -404,6 +435,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = VAE()
             name_full = name + "_5cls"
@@ -415,6 +447,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
         if name == "CNN_VAE":
             model = CNNVAE()
@@ -426,6 +459,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = CNNVAE()
             name_full = name + "_5cls"
@@ -436,6 +470,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
         if name == "CNN":
             model = CNN(180,4)
@@ -447,6 +482,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = CNN(180,5)
             name_full = name + "_5cls"
@@ -457,6 +493,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = CNN(180, 4)
             name_full = name + "_4cls"
@@ -467,6 +504,7 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
+                continue
 
             model = CNN(180, 5)
             name_full = name + "_5cls"

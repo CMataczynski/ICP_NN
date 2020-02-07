@@ -8,6 +8,7 @@ from textwrap import wrap
 import re
 import itertools
 import matplotlib
+import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
 
@@ -27,7 +28,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
     np.set_printoptions(precision=2)
     ###fig, ax = matplotlib.figure.Figure()
 
-    fig = matplotlib.figure.Figure(figsize=(7, 7), dpi=320, facecolor='w', edgecolor='k')
+    fig = plt.figure(figsize=(7, 7), dpi=320, facecolor='w', edgecolor='k')
     ax = fig.add_subplot(1, 1, 1)
     im = ax.imshow(cm, cmap='Oranges')
 

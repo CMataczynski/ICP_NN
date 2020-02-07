@@ -26,13 +26,14 @@ class Manager:
         self.optimizer = optimizer
         self.scheduler = scheduler
         if not VAE:
-            self.trainer = Trainer(experiment_name, self.model, self.train_dataloader, self.test_dataloader, criterion,
+            self.trainer = Trainer(self.experiment_name, self.model, self.train_dataloader, self.test_dataloader, criterion,
                                    optimizer, scheduler)
         else:
-            self.trainer = VAETrainer(experiment_name, self.model, self.train_dataloader, self.test_dataloader,
+            self.trainer = VAETrainer(self.experiment_name, self.model, self.train_dataloader, self.test_dataloader,
                                       optimizer, scheduler)
 
     def run(self, number_of_epochs):
+        print("Starting experiment - " + self.experiment_name)
         self.trainer.train(number_of_epochs)
 
     def _get_full_name(self, name):

@@ -85,6 +85,15 @@ class Trainer:
                 best_net = copy.deepcopy(net)
             writer.add_scalar("Accuracy/test", correct / total, epoch)
             writer.add_scalar("F1_score/test", f1, epoch)
+        class_dict = {
+            0: "T1",
+            1: "T2",
+            2: "T3",
+            3: "T4",
+            4: "A+E"
+        }
+        labs = [class_dict[a] for a in labs]
+        preds = [class_dict[a] for a in preds]
         writer.add_figure(self.name + " - Confusion Matrix",
                           plot_confusion_matrix(labs, preds, ["T1", "T2", "T3", "T4", "A+E"]))
         writer.close()
@@ -190,7 +199,15 @@ class VAETrainer:
                     best_net = copy.deepcopy(net)
                 writer.add_scalar("Accuracy/test", correct / total, epoch)
                 writer.add_scalar("F1_score/test", f1, epoch)
-
+        class_dict = {
+            0: "T1",
+            1: "T2",
+            2: "T3",
+            3: "T4",
+            4: "A+E"
+        }
+        labs = [class_dict[a] for a in labs]
+        preds = [class_dict[a] for a in preds]
         if "5cls" in self.name:
             writer.add_figure(self.name + " - Confusion Matrix",
                               plot_confusion_matrix(labs, preds, ["T1", "T2", "T3", "T4", "A+E"]))
