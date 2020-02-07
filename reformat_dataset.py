@@ -1,8 +1,9 @@
 import os
-import pandas as pd
 from shutil import copy
-from tqdm import tqdm
+
+import pandas as pd
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
 
 # path to full, raw dataset
 dataset_name = "full_corrected_dataset"
@@ -22,10 +23,10 @@ for root, dirs, files in tqdm(os.walk(datasets)):
     for file in files:
         if file[0] in 'TAE':
             prefix = file.split("_")[0]
-            name = prefix+"_"+str(current_id)+".csv"
-            map_arr.append([name, root+os.sep+file])
+            name = prefix + "_" + str(current_id) + ".csv"
+            map_arr.append([name, root + os.sep + file])
             if file[1] == "1":
-                t1.append([name, root+os.sep+file])
+                t1.append([name, root + os.sep + file])
             elif file[1] == "2":
                 t2.append([name, root + os.sep + file])
             elif file[1] == "3":
@@ -37,7 +38,7 @@ for root, dirs, files in tqdm(os.walk(datasets)):
             current_id += 1
 
 mapping = pd.DataFrame(data=map_arr, columns=["new_id", "RAW_path"])
-mapping.to_csv(os.path.join(os.getcwd(), "datasets", dataset_name+"_to_RAW_mapping.csv"), sep=';')
+mapping.to_csv(os.path.join(os.getcwd(), "datasets", dataset_name + "_to_RAW_mapping.csv"), sep=';')
 
 t1_train, t1_test = train_test_split(t1, test_size=0.25)
 t2_train, t2_test = train_test_split(t2, test_size=0.25)

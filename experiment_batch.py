@@ -1,231 +1,183 @@
-import argparse
 import os
+
+import torch
 from torch import nn
-import torch.optim
-from utils import Initial_dataset_loader
-from torch.utils.data import DataLoader
-from training_loop import Trainer, VAETrainer
+
+from experiment_manager import Manager
+from models.AEmodel import VAE, CNNVAE
+from models.CNNmodel import CNN
 from models.FCmodel import FCmodel
 from models.RNNmodel import LSTM, GRU, LSTMFCN
-from models.AEmodel import VAE
-from experiment_manager import Manager
-import torch
-import numpy as np
+from utils import Initial_dataset_loader
 
 if __name__ == "__main__":
-    names = ["FC_full", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE"]
+    names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE"]
     rootdir = os.path.join(os.getcwd(), 'experiments')
-
-    dataset = "full_dataset"
+    dataset = "full_corrected_dataset"
     datasets = os.path.join(os.getcwd(), "datasets", dataset)
     train_dataset_path = os.path.join(datasets, "train")
     train_dataset = Initial_dataset_loader(train_dataset_path)
     weights = train_dataset.get_class_weights()
     train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
-    weights_6cls = train_dataset.get_class_weights()
+    weights_5cls = train_dataset.get_class_weights()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    weights_6cls = weights_6cls.to(device)
+    weights_5cls = weights_5cls.to(device)
     weights = weights.to(device)
     train_dataset = None
     log = []
     for name in names:
-        max = 0
-        for subdir in os.listdir(rootdir):
-            if name in subdir:
-                var = int(subdir.split('_')[-1])
-                if var > max:
-                    max = var
-        name = name
-
         if name == "FC_full":
             model = FCmodel(180, 4)
             name_full = name + "_4cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
             criterion = nn.CrossEntropyLoss(weights)
-
-            
             optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
             manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
             manager.run(1000)
+
+            model = FCmodel(180, 4)
+            name_full = name + "_4cls_weighted"
+            try:
+                criterion = nn.CrossEntropyLoss(weights)
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True,
+                                            weight_decay=0.0001)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 4)
+            name_full = name + "_4cls_weighted"
+            try:
+                
+                criterion = nn.CrossEntropyLoss(weights)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 4)
+            name_full = name + "_4cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 4)
+            name_full = name + "_4cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, nesterov=True,
+                                            weight_decay=0.0001)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 4)
+            name_full = name + "_4cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 5)
+            name_full = name + "_5cls_weighted"
+            try:
+                criterion = nn.CrossEntropyLoss(weights)
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 5)
+            name_full = name + "_5cls_weighted"
+            try:
+                criterion = nn.CrossEntropyLoss(weights_5cls)
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True,
+                                            weight_decay=0.0001)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 5)
+            name_full = name + "_5cls_weighted"
+            try:
+                criterion = nn.CrossEntropyLoss(weights_5cls)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 5)
+            name_full = name + "_5cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = FCmodel(180, 5)
+            name_full = name + "_5cls"
+
             
-            max = max+1
-
-
-            model = FCmodel(180, 4)
-            name_full = name + "_4cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss(weights)
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 4)
-            name_full = name + "_4cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            try:
-                dataset = "full_dataset"
-                criterion = nn.CrossEntropyLoss(weights)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 4)
-            name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 4)
-            name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 4)
-            name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 6)
-            name_full = name + "_6cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss(weights)
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True,
+                                            weight_decay=0.0001)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = FCmodel(180, 6)
-            name_full = name + "_6cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
+            model = FCmodel(180, 5)
+            name_full = name + "_5cls"
 
-            model = FCmodel(180, 6)
-            name_full = name + "_6cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 6)
-            name_full = name + "_6cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 6)
-            name_full = name + "_6cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
-
-            model = FCmodel(180, 6)
-            name_full = name + "_6cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
-            try:
-                criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-            max = max+1
 
         if name == "LSTM_full":
             model = LSTM()
             name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTM(output_size=6)
-            name_full = name + "_6cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = LSTM(output_size=5)
+            name_full = name + "_5cls"
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
             model = LSTM()
             name_full = name + "_4cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
             try:
                 criterion = nn.CrossEntropyLoss(weights)
                 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -233,104 +185,96 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTM(output_size=6)
-            name_full = name + "_6cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = LSTM(output_size=5)
+            name_full = name + "_5cls_weighted"
+
+            
             try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
+                criterion = nn.CrossEntropyLoss(weights_5cls)
                 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
             model = LSTM(hidden_layer_size=16)
             name_full = name + "_4cls_hidden"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTM(hidden_layer_size=16, output_size=6)
-            name_full = name + "_6cls_hidden"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = LSTM(hidden_layer_size=16, output_size=5)
+            name_full = name + "_5cls_hidden"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTM(hidden_layer_size=16,bidirectional=True)
+            model = LSTM(hidden_layer_size=16, bidirectional=True)
             name_full = name + "_4cls_hidden_bidir_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss(weights)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTM(hidden_layer_size=16, output_size=6, bidirectional=True)
-            name_full = name + "_6cls_hidden_bidir_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = LSTM(hidden_layer_size=16, output_size=5, bidirectional=True)
+            name_full = name + "_5cls_hidden_bidir_weighted"
+
+            
             try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                criterion = nn.CrossEntropyLoss(weights_5cls)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
         if name == "GRU_full":
             model = GRU()
             name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = GRU(output_size=6)
-            name_full = name + "_6cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = GRU(output_size=5)
+            name_full = name + "_5cls"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
             model = GRU()
             name_full = name + "_4cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss(weights)
                 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -338,138 +282,199 @@ if __name__ == "__main__":
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = GRU(output_size=6)
-            name_full = name + "_6cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = GRU(output_size=5)
+            name_full = name + "_5cls_weighted"
+
+            
             try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
+                criterion = nn.CrossEntropyLoss(weights_5cls)
                 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
             model = GRU(hidden_layer_size=16)
             name_full = name + "_4cls_hidden"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = GRU(hidden_layer_size=16, output_size=6)
-            name_full = name + "_6cls_hidden"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = GRU(hidden_layer_size=16, output_size=5)
+            name_full = name + "_5cls_hidden"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
             model = GRU(hidden_layer_size=16, bidirectional=True)
             name_full = name + "_4cls_hidden_bidir_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss(weights)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = GRU(hidden_layer_size=16, output_size=6, bidirectional=True)
-            name_full = name + "_6cls_hidden_bidir_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = GRU(hidden_layer_size=16, output_size=5, bidirectional=True)
+            name_full = name + "_5cls_hidden_bidir_weighted"
+
+            
             try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                criterion = nn.CrossEntropyLoss(weights_5cls)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
         if name == "LSTM_FCN_full":
-            model = LSTMFCN(180,4)
+            model = LSTMFCN(180, 4)
             name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTMFCN(180,6)
-            name_full = name + "_6cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = LSTMFCN(180, 6)
+            name_full = name + "_5cls"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTMFCN(180,4)
+            model = LSTMFCN(180, 4)
             name_full = name + "_4cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss(weights)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
-            model = LSTMFCN(180,6)
-            name_full = name + "_6cls_weighted"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+            model = LSTMFCN(180, 5)
+            name_full = name + "_5cls_weighted"
+
+            
             try:
-                criterion = nn.CrossEntropyLoss(weights_6cls)
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                criterion = nn.CrossEntropyLoss(weights_5cls)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
         if name == "VAE":
             model = VAE()
             name_full = name + "_4cls"
-            name_full = name_full + "_" + str(max+1)
-            dataset = "full_dataset"
+
+            
             try:
                 criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                 manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True)
                 manager.run(1000)
             except:
                 log.append("failed model " + name_full)
-            max = max+1
 
+            model = VAE()
+            name_full = name + "_5cls"
+
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+        if name == "CNN_VAE":
+            model = CNNVAE()
+            name_full = name + "_4cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = CNNVAE()
+            name_full = name + "_5cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+        if name == "CNN":
+            model = CNN(180,4)
+            name_full = name + "_4cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = CNN(180,5)
+            name_full = name + "_5cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = CNN(180, 4)
+            name_full = name + "_4cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
+
+            model = CNN(180, 5)
+            name_full = name + "_5cls"
+            try:
+                criterion = nn.CrossEntropyLoss()
+                optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                manager.run(1000)
+            except:
+                log.append("failed model " + name_full)
     print(log)
