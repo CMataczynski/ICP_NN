@@ -54,6 +54,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
     fig.set_tight_layout(True)
     return fig
 
+
 class Initial_dataset_loader(Dataset):
     def __init__(self, dataset_folder, transforms=None, full=False):
         padding_minimum = torch.zeros(180)
@@ -93,6 +94,9 @@ class Initial_dataset_loader(Dataset):
         unique, counts = np.unique(ids, return_counts=True)
         counts = 1 - (counts / len(ids)) + (1 / len(unique))
         return torch.tensor(counts)
+
+    def get_dataset(self):
+        return self.whole_set
 
     def __len__(self):
         return self.length
