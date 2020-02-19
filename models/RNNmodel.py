@@ -90,8 +90,12 @@ class LSTMFCN(nn.Module):
         x = x.unsqueeze(1)
         x1 = self.lstm_block(x)
         x1 = torch.squeeze(x1)
+        if len(x1.shape) == 1:
+            x1 = x1.view(1,x1.size(0))
         x2 = self.fcn_block(x)
         x2 = torch.squeeze(x2)
+        if len(x2.shape) == 1:
+            x2 = x2.view(1,x2.size(0))
         x = torch.cat([x1, x2], 1)
         x = self.dense(x)
         y = self.softmax(x)

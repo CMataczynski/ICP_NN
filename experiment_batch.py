@@ -11,7 +11,8 @@ from models.RNNmodel import LSTM, GRU, LSTMFCN
 from utils import Initial_dataset_loader
 
 if __name__ == "__main__":
-    names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE"]
+    #names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE"]
+    names = ["LSTM_FCN_full", "VAE", "CNN_VAE"]
     rootdir = os.path.join(os.getcwd(), 'experiments')
     dataset = "full_corrected_dataset"
     datasets = os.path.join(os.getcwd(), "datasets", dataset)
@@ -375,15 +376,11 @@ if __name__ == "__main__":
             name_full = name + "_4cls"
 
             
-            try:
-                criterion = nn.CrossEntropyLoss()
-                optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
-                manager.run(1000)
-            except:
-                log.append("failed model " + name_full)
-                continue
-
+            criterion = nn.CrossEntropyLoss()
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+            manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+            manager.run(1000)
+            
             model = LSTMFCN(180, 6)
             name_full = name + "_5cls"
 
