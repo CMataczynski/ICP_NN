@@ -24,10 +24,10 @@ if __name__ == "__main__":
 
     for load, input_size, batch_name, fc_param in zip(loading, inputs, batch_names, FC_params):
         result_dataframe = pd.DataFrame(columns=["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"])
-        names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE"]
+        names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE", "AE", "CNNAE"]
         # names = ["LSTM_FCN_full", "VAE", "CNN_VAE"]
         rootdir = os.path.join(os.getcwd(), 'experiments')
-        dataset = "full_corrected_dataset"
+        dataset = "full_splitted_dataset"
         datasets = os.path.join(os.getcwd(), "datasets", dataset)
         train_dataset_path = os.path.join(datasets, "train")
         train_dataset = Initial_dataset_loader(train_dataset_path)

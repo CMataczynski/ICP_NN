@@ -11,11 +11,11 @@ import pandas as pd
 input_size = 180
 output_sizes = [4, 5]
 rootdir = os.path.join(os.getcwd(), 'experiments')
-dataset = "full_corrected_dataset"
+dataset = "full_splitted_dataset"
 datasets = os.path.join(os.getcwd(), "datasets", dataset)
 train_dataset_path = os.path.join(datasets, "train")
 test_dataset_path = os.path.join(datasets, "test")
-exp_name = "cheby_5_classic"
+exp_name = "four_classic_split"
 fulls = [False, True]
 labels_table = [["T1", "T2", "T3", "T4"], ["T1", "T2", "T3", "T4", "A+E"]]
 # ort = lambda x,y: np.polynomial.hermite_e.hermefit(x, y, 7)
