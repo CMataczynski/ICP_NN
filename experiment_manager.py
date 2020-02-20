@@ -30,11 +30,14 @@ class Manager:
                                    optimizer, scheduler)
         else:
             self.trainer = VAETrainer(self.experiment_name, self.model, self.train_dataloader, self.test_dataloader,
-                                      optimizer, scheduler)
+                                      optimizer, criterion, scheduler)
 
     def run(self, number_of_epochs):
         print("Starting experiment - " + self.experiment_name)
-        self.trainer.train(number_of_epochs)
+        self.max_f1, self.max_acc = self.trainer.train(number_of_epochs)
+
+    def get_results(self):
+        return [self.experiment_name, "model in tensorboard", self.max_acc, self.max_f1]
 
     def _get_full_name(self, name):
         max = 0

@@ -5,15 +5,71 @@ from torch import nn
 from models.models_util import BlockConv, Flatten, UnFlatten, BlockDeconv
 
 
-class VAE(nn.Module):
-    def __init__(self):
-        super(VAE, self).__init__()
+class AE(nn.Module):
+    def __init__(self, sizes = [180, 32, 8]):
+        super(AE, self).__init__()
+        self.input_size = sizes[0]
+        self.encoder = nn.Sequential(
+            nn.Linear(sizes[0], sizes[1]),
+            nn.ReLU(),
+            nn.Linear(sizes[1], sizes[2]),
+            nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(sizes[2], sizes[1]),
+            nn.ReLU(),
+            nn.Linear(sizes[1], sizes[0]),
+            nn.Tanh()
+        )
 
-        self.fc1 = nn.Linear(180, 32)
-        self.fc21 = nn.Linear(32, 8)
-        self.fc22 = nn.Linear(32, 8)
-        self.fc3 = nn.Linear(8, 32)
-        self.fc4 = nn.Linear(32, 180)
+    def forward(self, x):
+        x = self.encoder(x)
+        return self.decoder(x)
+
+
+class CNNAE(nn.Module):
+    def __init__(self, full_features=180, squeeze_size=8, channels=[1, 32, 64, 64], kernels=[4, 4, 4], stride=2):
+        super(CNNAE, self).__init__()
+
+        size = int((full_features - (kernels[0] - 1) - 1) / stride) + 1
+        size = int((size - (kernels[1] - 1) - 1) / stride) + 1
+        size = int((size - (kernels[2] - 1) - 1) / stride) + 1
+
+        self.encoder = nn.Sequential(
+            BlockConv(channels[0], channels[1], kernels[0], norm=False, stride=stride),
+            # size: 89
+            BlockConv(channels[1], channels[2], kernels[1], norm=False, stride=stride),
+            # size: 43
+            BlockConv(channels[2], channels[3], kernels[2], norm=False, stride=stride),
+            # size: 20
+            Flatten(),
+            nn.Linear(size * channels[3], squeeze_size)
+
+        )
+
+        self.decoder = nn.Sequential(
+            nn.Linear(squeeze_size, size * channels[3]),
+            UnFlatten(),
+            BlockDeconv(channels[3], channels[2], kernels[0] + 1, norm=False, stride=stride),
+            BlockDeconv(channels[2], channels[1], kernels[1] + 1, norm=False, stride=stride),
+            BlockDeconv(channels[1], channels[0], kernels[2], norm=False, stride=stride, sigmoid=True)
+        )
+
+    def forward(self, x):
+        x = x.unsqueeze(1)
+        x = self.encoder(x)
+        return self.decoder(x)
+
+
+class VAE(nn.Module):
+    def __init__(self, sizes = [180, 32, 8]):
+        super(VAE, self).__init__()
+        self.input_size = sizes[0]
+        self.fc1 = nn.Linear(sizes[0], sizes[1])
+        self.fc21 = nn.Linear(sizes[1], sizes[2])
+        self.fc22 = nn.Linear(sizes[1], sizes[2])
+        self.fc3 = nn.Linear(sizes[2], sizes[1])
+        self.fc4 = nn.Linear(sizes[1], sizes[0])
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -31,7 +87,7 @@ class VAE(nn.Module):
         return torch.sigmoid(self.fc4(h3))
 
     def forward(self, x):
-        z, mu, logvar = self.encode(x.view(-1, 180))
+        z, mu, logvar = self.encode(x.view(-1, self.input_size))
         return self.decode(z), mu, logvar
 
 

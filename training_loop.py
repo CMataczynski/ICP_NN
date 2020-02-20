@@ -40,6 +40,7 @@ class Trainer:
         net.to(device)
         best_net = None
         max_score = 0
+        max_acc = 0
 
         for epoch in tqdm.tqdm(range(number_of_epochs)):
             running_loss = 0.0
@@ -82,6 +83,7 @@ class Trainer:
             f1 = f1_score(labs, preds, average='weighted')
             if f1 > max_score:
                 max_score = f1
+                max_acc = correct/total
                 best_net = copy.deepcopy(net)
             writer.add_scalar("Accuracy/test", correct / total, epoch)
             writer.add_scalar("F1_score/test", f1, epoch)
@@ -104,6 +106,8 @@ class Trainer:
         PATH = 'experiments/' + self.name + '/model_weights/model_best.pth'
         torch.save(best_net, PATH)
 
+        return max_score, max_acc
+
 
 def loss_function(recon_x, x, mu, logvar):
     BCE = F.mse_loss(recon_x, x, reduction='sum')
@@ -112,7 +116,7 @@ def loss_function(recon_x, x, mu, logvar):
 
 
 class VAETrainer:
-    def __init__(self, name, network, train_dataloader, test_dataloader, optimizer, scheduler=None):
+    def __init__(self, name, network, train_dataloader, test_dataloader, optimizer, criterion = None, scheduler=None):
         self.name = name
         self.net = network
         self.train_dataloader = train_dataloader
@@ -121,8 +125,10 @@ class VAETrainer:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available():
             print("Using GPU")
-
-        self.criterion = loss_function
+        if criterion is None:
+            self.criterion = loss_function
+        else:
+            self.criterion = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
 
@@ -141,6 +147,7 @@ class VAETrainer:
         net.to(device)
         best_net = None
         max_score = 0
+        max_acc = 0
         for epoch in tqdm.tqdm(range(number_of_epochs)):
 
             net.train()
@@ -196,6 +203,7 @@ class VAETrainer:
                 f1 = f1_score(labs, preds, average='weighted')
                 if f1 > max_score:
                     max_score = f1
+                    max_acc = correct/total
                     best_net = copy.deepcopy(net)
                 writer.add_scalar("Accuracy/test", correct / total, epoch)
                 writer.add_scalar("F1_score/test", f1, epoch)
@@ -222,3 +230,5 @@ class VAETrainer:
         torch.save(net, PATH)
         PATH = 'experiments/' + self.name + '/model_weights/model_best.pth'
         torch.save(best_net, PATH)
+
+        return max_score, max_acc

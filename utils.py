@@ -11,6 +11,14 @@ import matplotlib
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
+def get_fourier_coeff(x, y):
+    fft = np.fft.fft(y, n=180)/len(y)
+    fft *= 2
+    out = []
+    out.append(fft[0].real)
+    out += fft[1:-1].real
+    out += -fft[1:-1].imag
+    return out
 
 def files(path):
     for file in os.listdir(path):
