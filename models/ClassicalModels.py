@@ -29,6 +29,9 @@ class ClassicalModel:
             output_str += "F1 Score: {}\n".format(self.f1_score)
         return output_str
 
+    def get_results(self):
+        return [self.name.split('\n')[0], self.name.split('\n')[1:], self.mean_score, self.f1_score]
+
     def learn(self, x, y):
         self.model.fit(x, y)
 

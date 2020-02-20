@@ -3,6 +3,8 @@ from models.ClassicalModels import SVM, KNN, DiscriminantAnalysis, GaussianProce
 from sklearn.tree import DecisionTreeClassifier
 from utils import Initial_dataset_loader
 import os
+import numpy as np
+import pandas as pd
 
 
 input_size = 180
@@ -12,12 +14,14 @@ dataset = "full_corrected_dataset"
 datasets = os.path.join(os.getcwd(), "datasets", dataset)
 train_dataset_path = os.path.join(datasets, "train")
 test_dataset_path = os.path.join(datasets, "test")
-
+exp_name = "legendre_4_classic"
 fulls = [False, True]
 labels_table = [["T1", "T2", "T3", "T4"], ["T1", "T2", "T3", "T4", "A+E"]]
+ort = lambda x,y: np.polynomial.legendre.legfit(x, y, 4)
 for output_size, labels, full in zip(output_sizes, labels_table, fulls):
-    train_dataset = Initial_dataset_loader(train_dataset_path, full=full).get_dataset()
-    test_dataset = Initial_dataset_loader(test_dataset_path, full=full).get_dataset()
+    train_dataset = Initial_dataset_loader(train_dataset_path, full=full, ortho=ort).get_dataset()
+    test_dataset = Initial_dataset_loader(test_dataset_path, full=full, ortho=ort).get_dataset()
+    dataframe_out = []
     models = [
         SVM(input_size, output_size, labels),
         KNN(input_size, output_size, labels, n_neighbors=7),
@@ -34,3 +38,7 @@ for output_size, labels, full in zip(output_sizes, labels_table, fulls):
         mean_score = model.get_score(test_dataset["data"].numpy(), test_dataset["id"].numpy())
         f1_score = model.get_score(test_dataset["data"].numpy(), test_dataset["id"].numpy(), f1_score=True)
         print(model)
+        dataframe_out.append(model.get_results())
+    dataframe_out = pd.DataFrame(dataframe_out, columns=["name", "params", "acc", "f1 score"])
+    dataframe_out.to_csv(os.path.join(rootdir, "Classical_experiments", exp_name+str(len(labels))+"cls.csv"), sep=";",
+                         decimal=',')

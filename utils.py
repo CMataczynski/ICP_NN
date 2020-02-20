@@ -56,7 +56,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
 
 
 class Initial_dataset_loader(Dataset):
-    def __init__(self, dataset_folder, transforms=None, full=False):
+    def __init__(self, dataset_folder, transforms=None, full=False, ortho=None):
         padding_minimum = torch.zeros(180)
         dataframes = []
         labels = []
@@ -74,13 +74,24 @@ class Initial_dataset_loader(Dataset):
                 dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
         tensors = []
         for df in dataframes:
-            data = df.iloc[:, 1:].values[:, 0]
-            data = data - np.min(data)
-            data = data / np.max(data)
-            tensors.append(torch.tensor(data, dtype=torch.double))
-        tensors.append(padding_minimum)
+            if ortho is None:
+                data = df.iloc[:, 1:].values[:, 0]
+                data = data - np.min(data)
+                data = data / np.max(data)
+                tensors.append(torch.tensor(data, dtype=torch.double))
+            else:
+                x = np.copy(df.iloc[:, 0:].values[:, 0])
+                x = x - x.mean()
+                y = np.copy(df.iloc[:, 1:].values[:, 0])
+                tensors.append(torch.tensor(ortho(x, y), dtype=torch.double))
+
+        if ortho is None:
+            tensors.append(padding_minimum)
+
         tensors = torch.nn.utils.rnn.pad_sequence(tensors, batch_first=True)
-        tensors = tensors[:-1]
+
+        if ortho is None:
+            tensors = tensors[:-1]
         print(tensors.shape)
         self.whole_set = {
             'data': tensors,
