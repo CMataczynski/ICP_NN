@@ -14,6 +14,7 @@ class CNN(nn.Module):
         self.conv3 = BlockConv(channels[2], channels[3], kernels[2], momentum=mom, epsilon=eps)
         size = size - (kernels[2] - 1)
         self.pooling = nn.MaxPool1d(size)
+        self.dropout = nn.Dropout(0.3)
         self.fully_connected = nn.Linear(channels[-1], out_features)
 
     def forward(self, x):
@@ -23,5 +24,6 @@ class CNN(nn.Module):
         x = self.conv3(x)
         x = self.pooling(x)
         x = x.view(x.size(0), -1)
+        x = self.dropout(x)
         y = self.fully_connected(x)
         return y
