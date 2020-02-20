@@ -12,15 +12,15 @@ from utils import Initial_dataset_loader
 
 
 class Manager:
-    def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE=False, full=False):
+    def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE=False, full=False, ortho=None):
         self.experiment_name = self._get_full_name(experiment_name)
         self.model = model
         self.datasets = os.path.join(os.getcwd(), "datasets", dataset)
         self.train_dataset_path = os.path.join(self.datasets, "train")
-        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full)
+        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full, ortho=None)
         self.train_dataloader = DataLoader(self.train_dataset, 64, shuffle=True, num_workers=0)
         self.test_dataset_path = os.path.join(self.datasets, "test")
-        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full)
+        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=None)
         self.test_dataloader = DataLoader(self.test_dataset, 64, shuffle=True, num_workers=0)
         self.criterion = criterion
         self.optimizer = optimizer

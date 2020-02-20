@@ -22,23 +22,25 @@ if __name__ == "__main__":
     batch_names = ["Raw_", "Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
     FC_params = [(32, 16), (32, 16), (8, 4), (8, 4), (8, 4)]
 
+    rootdir = os.path.join(os.getcwd(), 'experiments')
+    dataset = "full_splitted_dataset"
+    datasets = os.path.join(os.getcwd(), "datasets", dataset)
+    train_dataset_path = os.path.join(datasets, "train")
+    train_dataset = Initial_dataset_loader(train_dataset_path)
+    weights = train_dataset.get_class_weights()
+    train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
+    weights_5cls = train_dataset.get_class_weights()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    weights_5cls = weights_5cls.to(device)
+    weights = weights.to(device)
+    train_dataset = None
+    log = []
+    
     for load, input_size, batch_name, fc_param in zip(loading, inputs, batch_names, FC_params):
         result_dataframe = pd.DataFrame(columns=["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"])
         names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE", "AE", "CNNAE"]
         # names = ["LSTM_FCN_full", "VAE", "CNN_VAE"]
-        rootdir = os.path.join(os.getcwd(), 'experiments')
-        dataset = "full_splitted_dataset"
-        datasets = os.path.join(os.getcwd(), "datasets", dataset)
-        train_dataset_path = os.path.join(datasets, "train")
-        train_dataset = Initial_dataset_loader(train_dataset_path)
-        weights = train_dataset.get_class_weights()
-        train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
-        weights_5cls = train_dataset.get_class_weights()
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        weights_5cls = weights_5cls.to(device)
-        weights = weights.to(device)
-        train_dataset = None
-        log = []
+
         for name in names:
             if name == "FC_full":
                 model = FCmodel(input_size, 4, fc_param[0], fc_param[1])
@@ -46,7 +48,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -59,7 +61,7 @@ if __name__ == "__main__":
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True,
                                                 weight_decay=0.0001)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -72,7 +74,7 @@ if __name__ == "__main__":
 
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -84,7 +86,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -97,7 +99,7 @@ if __name__ == "__main__":
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9, nesterov=True,
                                                 weight_decay=0.0001)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -109,7 +111,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -121,7 +123,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -134,7 +136,7 @@ if __name__ == "__main__":
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True,
                                                 weight_decay=0.0001)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -146,7 +148,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -158,7 +160,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -173,7 +175,7 @@ if __name__ == "__main__":
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True,
                                                 weight_decay=0.0001)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -187,7 +189,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -202,7 +204,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -214,7 +216,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -226,7 +228,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -240,7 +242,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -254,7 +256,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -268,7 +270,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -282,7 +284,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -296,7 +298,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -311,7 +313,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -325,7 +327,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -339,7 +341,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -353,7 +355,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -367,7 +369,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -381,7 +383,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -395,7 +397,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -409,7 +411,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -423,7 +425,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -436,7 +438,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -450,7 +452,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -464,7 +466,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss(weights_5cls)
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -479,7 +481,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, None, optimizer, VAE=True)
+                    manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -492,7 +494,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, full=True)
+                    manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -517,7 +519,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, full=True)
+                    manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -532,7 +534,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.MSELoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -545,7 +547,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.MSELoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -558,7 +560,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.MSELoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -570,7 +572,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.MSELoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -583,7 +585,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -595,7 +597,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -607,7 +609,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
@@ -619,7 +621,7 @@ if __name__ == "__main__":
                 try:
                     criterion = nn.CrossEntropyLoss()
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True)
+                    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(1000)
                     result_dataframe.append(manager.get_results())
                 except:
