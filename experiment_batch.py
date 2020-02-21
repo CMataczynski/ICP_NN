@@ -44,7 +44,8 @@ if __name__ == "__main__":
     log = []
 
     for load, input_size, batch_name, fc_param in zip(loading, inputs, batch_names, FC_params):
-        result_dataframe = pd.DataFrame(columns=["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"])
+        cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
+        result_dataframe = pd.DataFrame(columns=cols)
         names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE", "AE", "CNNAE"]
         # names = ["LSTM_FCN_full", "VAE", "CNN_VAE"]
 
@@ -57,7 +58,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -70,7 +71,7 @@ if __name__ == "__main__":
                                                 weight_decay=0.0001)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -83,7 +84,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -95,7 +96,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -108,7 +109,7 @@ if __name__ == "__main__":
                                                 weight_decay=0.0001)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -120,7 +121,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -132,7 +133,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -145,7 +146,7 @@ if __name__ == "__main__":
                                                 weight_decay=0.0001)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -157,7 +158,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -169,7 +170,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -184,7 +185,7 @@ if __name__ == "__main__":
                                                 weight_decay=0.0001)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -198,7 +199,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -213,7 +214,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -225,7 +226,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -237,7 +238,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -251,7 +252,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -265,7 +266,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -279,7 +280,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -293,7 +294,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -307,7 +308,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -322,7 +323,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -336,7 +337,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -350,7 +351,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -364,7 +365,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -378,7 +379,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -392,7 +393,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -406,7 +407,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -420,7 +421,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -434,7 +435,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -447,7 +448,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -461,7 +462,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -475,7 +476,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -490,7 +491,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -503,7 +504,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -516,7 +517,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, None, optimizer, VAE=True)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -528,7 +529,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, None, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -543,7 +544,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -556,7 +557,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -569,7 +570,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -581,7 +582,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=True, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -594,7 +595,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -606,7 +607,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -618,7 +619,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
                     continue
@@ -630,7 +631,7 @@ if __name__ == "__main__":
                     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
                     manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, full=True, ortho=load)
                     manager.run(500)
-                    result_dataframe.append(manager.get_results())
+                    result_dataframe.append(pd.DataFrame(manager.get_results(),columns=cols))
                 except:
                     log.append("failed model " + name_full)
         result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name+".csv"))
