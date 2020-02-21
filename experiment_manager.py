@@ -6,9 +6,11 @@ from torch.utils.data import DataLoader
 
 from models.AEmodel import VAE, CNNVAE
 from models.RNNmodel import LSTM
+from models.FCmodel import FCmodel
 from models.CNNmodel import CNN
 from training_loop import Trainer, VAETrainer
 from utils import Initial_dataset_loader
+import numpy as np
 
 
 class Manager:
@@ -17,10 +19,10 @@ class Manager:
         self.model = model
         self.datasets = os.path.join(os.getcwd(), "datasets", dataset)
         self.train_dataset_path = os.path.join(self.datasets, "train")
-        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full, ortho=None)
+        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full, ortho=ortho)
         self.train_dataloader = DataLoader(self.train_dataset, 64, shuffle=True, num_workers=0)
         self.test_dataset_path = os.path.join(self.datasets, "test")
-        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=None)
+        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=ortho)
         self.test_dataloader = DataLoader(self.test_dataset, 64, shuffle=True, num_workers=0)
         self.criterion = criterion
         self.optimizer = optimizer
@@ -56,12 +58,12 @@ if __name__ == "__main__":
     # parser.add_argument("-m", "--model", type=str, help="Model to train ('FC', 'LSTM', 'VAE'")
     # parser.add_argument("-d", "--dataset", action=str, help="subfolder of the datasets folder")
     # args = parser.parse_args()
-    name = "CNNVAE"
-    model = CNNVAE()
+    name = "FC_cheby"
+    model = FCmodel(8, 4, 6, 4)
     dataset = "full_corrected_dataset"
     criterion = nn.CrossEntropyLoss()
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
-    manager = Manager(name, model, dataset, criterion, optimizer, VAE=True)
+    manager = Manager(name, model, dataset, criterion, optimizer, VAE=False, ortho=lambda x,y :np.polynomial.chebyshev.chebfit(x,y,7))
     manager.run(500)

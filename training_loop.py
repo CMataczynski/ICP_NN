@@ -32,7 +32,7 @@ class Trainer:
         train_dataloader = self.train_dataloader
         test_dataloader = self.test_dataloader
         net = self.net.double()
-        dummy_input = torch.zeros(1,180).double()
+        dummy_input = next(iter(train_dataloader))["image"]
         writer.add_graph(self.net, input_to_model=dummy_input)
         criterion = self.criterion
         optimizer = self.optimizer
@@ -139,7 +139,7 @@ class VAETrainer:
         test_dataloader = self.test_dataloader
         net = self.net.double()
         self.net.eval()
-        dummy_input = torch.zeros(1, 180).double()
+        dummy_input = next(iter(train_dataloader))["image"]
         writer.add_graph(self.net, input_to_model=dummy_input)
         criterion = self.criterion
         optimizer = self.optimizer
