@@ -64,7 +64,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
 
 
 class Initial_dataset_loader(Dataset):
-    def __init__(self, dataset_folder, transforms=None, full=False, ortho=None):
+    def __init__(self, dataset_folder, transforms=None, full=False, ortho=None, normalize=True):
         padding_minimum = torch.zeros(180)
         dataframes = []
         labels = []
@@ -84,14 +84,19 @@ class Initial_dataset_loader(Dataset):
         for df in dataframes:
             if ortho is None:
                 data = df.iloc[:, 1:].values[:, 0]
-                data = data - np.min(data)
-                data = data / np.max(data)
+                if normalize:
+                    data = data - np.min(data)
+                    data = data / np.max(data)
                 tensors.append(torch.tensor(data, dtype=torch.double))
             else:
                 x = np.copy(df.iloc[:, 0:].values[:, 0])
                 x = x - x.mean()
                 y = np.copy(df.iloc[:, 1:].values[:, 0])
-                tensors.append(torch.tensor(ortho(x, y), dtype=torch.double))
+                y = ortho(x, y)
+                if normalize:
+                    y = y - np.min(y)
+                    y = y / np.max(y)
+                tensors.append(torch.tensor(y, dtype=torch.double))
 
         if ortho is None:
             tensors.append(padding_minimum)
