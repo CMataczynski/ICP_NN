@@ -3,4 +3,5 @@ __pycache__/
 models/__pycache__/
 datasets/
 experiments/
+results/
 .ipynb_checkpoints/
