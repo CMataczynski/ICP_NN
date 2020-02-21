@@ -44,6 +44,7 @@ class Trainer:
 
         for epoch in tqdm.tqdm(range(number_of_epochs)):
             running_loss = 0.0
+            net.train()
             for i, data in enumerate(train_dataloader, 0):
                 inputs = data['image'].double().to(device)
                 labels = data['label'].to(device)
@@ -62,7 +63,7 @@ class Trainer:
             loss_sum = 0
             total = 0
             correct = 0
-
+            net.eval()
             with torch.no_grad():
                 preds = []
                 labs = []
