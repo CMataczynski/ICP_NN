@@ -13,14 +13,14 @@ import pandas as pd
 import numpy as np
 
 if __name__ == "__main__":
-    loading = [get_fourier_coeff,
+    loading = [None,
+               get_fourier_coeff,
                lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 7),
                lambda x, y: np.polynomial.legendre.legfit(x, y, 7),
-               lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7),
-               None]
-    inputs = [178, 8, 8, 8, 180]
-    batch_names = ["Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_", "Raw_"]
-    FC_params = [(32, 16), (8, 4), (8, 4), (8, 4), (32, 16)]
+               lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7)]
+    inputs = [180, 178, 8, 8, 8]
+    batch_names = ["Raw_", "Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
+    FC_params = [(32, 16), (32, 16), (8, 4), (8, 4), (8, 4)]
     # loading = [get_fourier_coeff,
     #            lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 7),
     #            lambda x, y: np.polynomial.legendre.legfit(x, y, 7),
@@ -205,7 +205,7 @@ if __name__ == "__main__":
                     continue
 
             if name == "LSTM_full":
-                model = LSTM()
+                model = LSTM(input_size=input_size)
                 name_full = batch_name + name + "_4cls"
 
 
@@ -219,7 +219,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM(output_size=5)
+                model = LSTM(input_size=input_size, output_size=5)
                 name_full = batch_name + name + "_5cls"
                 try:
                     criterion = nn.CrossEntropyLoss()
@@ -231,7 +231,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM()
+                model = LSTM(input_size=input_size)
                 name_full = batch_name + name + "_4cls_weighted"
                 try:
                     criterion = nn.CrossEntropyLoss(weights)
@@ -243,7 +243,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM(output_size=5)
+                model = LSTM(input_size=input_size,output_size=5)
                 name_full = batch_name + name + "_5cls_weighted"
 
 
@@ -257,7 +257,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM(hidden_layer_size=16)
+                model = LSTM(input_size=input_size,hidden_layer_size=16)
                 name_full = batch_name + name + "_4cls_hidden"
 
 
@@ -271,7 +271,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM(hidden_layer_size=16, output_size=5)
+                model = LSTM(input_size=input_size,hidden_layer_size=16, output_size=5)
                 name_full = batch_name + name + "_5cls_hidden"
 
 
@@ -285,7 +285,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM(hidden_layer_size=16, bidirectional=True)
+                model = LSTM(input_size=input_size,hidden_layer_size=16, bidirectional=True)
                 name_full = batch_name + name + "_4cls_hidden_bidir_weighted"
 
 
@@ -299,7 +299,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = LSTM(hidden_layer_size=16, output_size=5, bidirectional=True)
+                model = LSTM(input_size=input_size,hidden_layer_size=16, output_size=5, bidirectional=True)
                 name_full = batch_name + name + "_5cls_hidden_bidir_weighted"
 
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
                     continue
 
             if name == "GRU_full":
-                model = GRU()
+                model = GRU(input_size=input_size)
                 name_full = batch_name + name + "_4cls"
 
 
@@ -328,7 +328,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU(output_size=5)
+                model = GRU(input_size=input_size,output_size=5)
                 name_full = batch_name + name + "_5cls"
 
 
@@ -342,7 +342,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU()
+                model = GRU(input_size=input_size)
                 name_full = batch_name + name + "_4cls_weighted"
 
 
@@ -356,7 +356,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU(output_size=5)
+                model = GRU(input_size=input_size,output_size=5)
                 name_full = batch_name + name + "_5cls_weighted"
 
 
@@ -370,7 +370,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU(hidden_layer_size=16)
+                model = GRU(input_size=input_size,hidden_layer_size=16)
                 name_full = batch_name + name + "_4cls_hidden"
 
 
@@ -384,7 +384,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU(hidden_layer_size=16, output_size=5)
+                model = GRU(input_size=input_size,hidden_layer_size=16, output_size=5)
                 name_full = batch_name + name + "_5cls_hidden"
 
 
@@ -398,7 +398,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU(hidden_layer_size=16, bidirectional=True)
+                model = GRU(input_size=input_size,hidden_layer_size=16, bidirectional=True)
                 name_full = batch_name + name + "_4cls_hidden_bidir_weighted"
 
 
@@ -412,7 +412,7 @@ if __name__ == "__main__":
                     log.append("failed model " + name_full)
                     continue
 
-                model = GRU(hidden_layer_size=16, output_size=5, bidirectional=True)
+                model = GRU(input_size=input_size,hidden_layer_size=16, output_size=5, bidirectional=True)
                 name_full = batch_name + name + "_5cls_hidden_bidir_weighted"
 
 
