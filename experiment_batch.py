@@ -13,21 +13,21 @@ import pandas as pd
 import numpy as np
 
 if __name__ == "__main__":
-    # loading = [None,
-    #            get_fourier_coeff,
-    #            lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 7),
-    #            lambda x, y: np.polynomial.legendre.legfit(x, y, 7),
-    #            lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7)]
-    # inputs = [180, 178, 8, 8, 8]
-    # batch_names = ["Raw_", "Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
-    # FC_params = [(32, 16), (32, 16), (8, 4), (8, 4), (8, 4)]
     loading = [get_fourier_coeff,
                lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 7),
                lambda x, y: np.polynomial.legendre.legfit(x, y, 7),
-               lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7)]
-    inputs = [178, 8, 8, 8]
-    batch_names = ["Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
-    FC_params = [(32, 16), (8, 4), (8, 4), (8, 4)]
+               lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7),
+               None]
+    inputs = [178, 8, 8, 8, 180]
+    batch_names = ["Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_", "Raw_"]
+    FC_params = [(32, 16), (8, 4), (8, 4), (8, 4), (32, 16)]
+    # loading = [get_fourier_coeff,
+    #            lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 7),
+    #            lambda x, y: np.polynomial.legendre.legfit(x, y, 7),
+    #            lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7)]
+    # inputs = [178, 8, 8, 8]
+    # batch_names = ["Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
+    # FC_params = [(32, 16), (8, 4), (8, 4), (8, 4)]
     length = 500
     rootdir = os.path.join(os.getcwd(), 'experiments')
     dataset = "full_splitted_dataset"
