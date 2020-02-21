@@ -634,5 +634,5 @@ if __name__ == "__main__":
                     result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
                 except:
                     log.append("failed model " + name_full)
-        result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name+".csv"))
+        result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name+".csv"), sep=';', decimal=',')
         print(log)
