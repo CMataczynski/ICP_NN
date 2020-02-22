@@ -21,13 +21,12 @@ if __name__ == "__main__":
     # inputs = [180, 178, 8, 8, 8]
     # batch_names = ["Raw_", "Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
     # FC_params = [(32, 16), (32, 16), (8, 4), (8, 4), (8, 4)]
-    loading = [get_fourier_coeff,
-               lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 7),
-               lambda x, y: np.polynomial.legendre.legfit(x, y, 7),
-               lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 7)]
-    inputs = [178, 8, 8, 8]
-    batch_names = ["Fourier_", "Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
-    FC_params = [(32, 16), (8, 4), (8, 4), (8, 4)]
+    loading = [lambda x, y: np.polynomial.chebyshev.chebfit(x, y, 19),
+               lambda x, y: np.polynomial.legendre.legfit(x, y, 19),
+               lambda x, y: np.polynomial.hermite_e.hermefit(x, y, 19)]
+    inputs = [20, 20, 20]
+    batch_names = ["Cheb_7_", "Legendre_7_", "Hermite_e_7_"]
+    FC_params = [(8, 4), (8, 4), (8, 4)]
     length = 500
     rootdir = os.path.join(os.getcwd(), 'experiments')
     dataset = "full_splitted_dataset"
@@ -46,7 +45,8 @@ if __name__ == "__main__":
     for load, input_size, batch_name, fc_param in zip(loading, inputs, batch_names, FC_params):
         cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
         result_dataframe = pd.DataFrame(columns=cols)
-        names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE", "AE", "CNNAE"]
+        # names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full", "VAE", "CNN_VAE", "AE", "CNNAE"]
+        names = ["FC_full", "CNN", "LSTM_full", "GRU_full", "LSTM_FCN_full"]
         # names = ["LSTM_FCN_full", "VAE", "CNN_VAE"]
 
         for name in names:
