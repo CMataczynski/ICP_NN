@@ -29,25 +29,25 @@ weights = weights.to(device)
 train_dataset = None
 
 experiments = [
-    {
-        "model": LSTMFCN(180, 5),
-        "name_full": "RAW_LSTM_FCN_5cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": True,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3)
-            ]),
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
+    # {
+    #     "model": LSTMFCN(180, 5),
+    #     "name_full": "RAW_LSTM_FCN_5cls_weighted",
+    #     "criterion": nn.CrossEntropyLoss(weights_5cls),
+    #     "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
+    #     "manager": {
+    #         "VAE": False,
+    #         "full": True,
+    #         "ortho": None,
+    #         "transforms": Compose([
+    #             ShortenOrElongateTransform(min_length=32,
+    #                                        max_length=180,
+    #                                        probability=0.66,
+    #                                        max_multiplier=3)
+    #         ]),
+    #         "loader_size": 64,
+    #         "normalize": True
+    #     }
+    # },
     {
         "model": LSTMFCN(178, 5),
         "name_full": "NormalizedFourier_LSTM_FCN_5cls_weighted",
