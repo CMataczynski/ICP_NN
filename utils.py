@@ -12,6 +12,17 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
+
+def transform_fourier(y):
+    fft = np.fft.fft(y, n=180) / len(y)
+    fft *= 2
+    out = []
+    out.append(fft[0].real)
+    out += fft[1:-1].real
+    out += -fft[1:-1].imag
+    return out
+
+
 def get_fourier_coeff(x, y):
     fft = np.fft.fft(y, n=180)/len(y)
     fft *= 2
@@ -126,7 +137,7 @@ class Initial_dataset_loader(Dataset):
         label = None
         data = self.whole_set['data'][idx]
         if self.transforms is not None:
-           data = self.transforms(data)
+            data = self.transforms(data)
         if 'id' in self.whole_set:
             label = self.whole_set['id'][idx].clone().detach()
 
@@ -170,7 +181,7 @@ class ShortenOrElongateTransform:
             return_val = np.array([i for num, i in enumerate(np_x) if num % multiplier == rest])
         elif roll <= prob_elongate+prob_shorten and elongate_available:
             interp_func = interpolate.interp1d(np.arange(0, len(np_x), 1), np_x, kind=self.kind)
-            xnew = np.arange(0, len(np_x) - 1 + 1 / multiplier, 1 / multiplier)
+            xnew = np.arange(0, len(np_x) - 1, 1 / multiplier)
             return_val = np.array(interp_func(xnew))
         else:
             return_val = np_x

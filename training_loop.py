@@ -41,22 +41,25 @@ class Trainer:
         best_net = None
         max_score = 0
         max_acc = 0
-
+        examples = len(train_dataloader)
+        # print(examples)
         for epoch in tqdm.tqdm(range(number_of_epochs)):
             running_loss = 0.0
             net.train()
             for i, data in enumerate(train_dataloader, 0):
-                inputs = data['image'].double().to(device)
+                inputs = torch.autograd.Variable(data['image'].double().to(device))
                 labels = data['label'].to(device)
 
-                optimizer.zero_grad()
                 outputs = net(inputs).double()
+                # print(outputs)
                 loss = criterion(outputs, labels)
+                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
-                if i + epoch * len(train_dataloader) % 10 == 9:
-                    writer.add_scalar("Loss/train", running_loss / 10, i + epoch * len(train_dataloader))
+                # print((i + epoch * examples )% 10, loss.item(), running_loss)
+                if i % 10 == 9:
+                    writer.add_scalar("Loss/train", running_loss / 10, i + epoch * examples)
                     running_loss = 0.0
 
             number = 0
@@ -165,7 +168,7 @@ class VAETrainer:
                 optimizer.step()
 
                 running_loss += loss.item()
-                if i + epoch * len(train_dataloader) % 10 == 9:
+                if (i + epoch * len(train_dataloader)) % 10 == 9:
                     writer.add_scalar("Loss/train", running_loss / 10, i + epoch * len(train_dataloader))
                     running_loss = 0.0
 

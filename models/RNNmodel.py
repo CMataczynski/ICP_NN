@@ -5,7 +5,7 @@ from models.models_util import BlockLSTM, BlockFCN
 
 
 class LSTM(nn.Module):
-    def __init__(self, input_size=180, hidden_layer_size=None, output_size=4, bidirectional=False):
+    def __init__(self, input_size=1, hidden_layer_size=None, output_size=4, bidirectional=False):
         super(LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_layer_size = hidden_layer_size
@@ -31,18 +31,18 @@ class LSTM(nn.Module):
             self.linear = None
 
     def forward(self, input_seq):
-        input_seq = input_seq.unsqueeze(1)
         input_seq = torch.transpose(input_seq, 0, 1)
+        input_seq = input_seq.unsqueeze(2)
         lstm_out, self.hidden_cell = self.lstm(input_seq)
         if self.linear is not None:
-            predictions = self.linear(torch.reshape(lstm_out[-1], (-1, self.hidden_layer_size)))
+            predictions = self.linear(lstm_out[-1, :, :])
         else:
-            predictions = lstm_out[-1]
+            predictions = lstm_out[-1, :, :]
         return predictions
 
 
 class GRU(nn.Module):
-    def __init__(self, input_size=180, hidden_layer_size=None, output_size=4, bidirectional=False):
+    def __init__(self, input_size=1, hidden_layer_size=None, output_size=4, bidirectional=False):
         super(GRU, self).__init__()
         self.input_size = input_size
         self.hidden_layer_size = hidden_layer_size
@@ -52,15 +52,15 @@ class GRU(nn.Module):
         if bidirectional:
             if hidden_layer_size is not None:
                 self.gru = nn.GRU(input_size, self.hidden_layer_size // 2,
-                                  num_layers=2,
+                                  num_layers=4,
                                   batch_first=True, bidirectional=True)
             else:
                 self.gru = nn.GRU(input_size, self.hidden_layer_size,
-                                  num_layers=2,
+                                  num_layers=4,
                                   batch_first=True, bidirectional=True)
         else:
             self.gru = nn.GRU(input_size, self.hidden_layer_size,
-                              num_layers=2,
+                              num_layers=4,
                               batch_first=True)
         if hidden_layer_size is not None:
             self.linear = nn.Linear(hidden_layer_size, output_size)
@@ -68,13 +68,13 @@ class GRU(nn.Module):
             self.linear = None
 
     def forward(self, input_seq):
-        input_seq = input_seq.unsqueeze(1)
         input_seq = torch.transpose(input_seq, 0, 1)
+        input_seq = input_seq.unsqueeze(2)
         gru_out, self.hidden_cell = self.gru(input_seq)
         if self.linear is not None:
-            predictions = self.linear(torch.reshape(gru_out[-1], (-1, self.hidden_layer_size)))
+            predictions = self.linear(gru_out[-1,:,:])
         else:
-            predictions = gru_out[-1]
+            predictions = gru_out[-1,:,:]
         return predictions
 
 

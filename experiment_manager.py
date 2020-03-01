@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 from torchvision.transforms import Compose
 
 from models.CNNmodel import CNN2d
+from models.RNNmodel import LSTM
 from training_loop import Trainer, VAETrainer
 from utils import Initial_dataset_loader, get_fourier_coeff, PlotToImage, ShortenOrElongateTransform
 import pandas as pd
@@ -13,16 +14,18 @@ import numpy as np
 
 
 class Manager:
-    def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE=False, full=False, ortho=None, transforms=None):
+    def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE=False, full=False,
+                 ortho=None, transforms=None, loader_size=64, normalize=True):
         self.experiment_name = self._get_full_name(experiment_name)
         self.model = model
         self.datasets = os.path.join(os.getcwd(), "datasets", dataset)
         self.train_dataset_path = os.path.join(self.datasets, "train")
-        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full, ortho=ortho, transforms=transforms)
-        self.train_dataloader = DataLoader(self.train_dataset, 64, shuffle=True, num_workers=0)
+        self.train_dataset = Initial_dataset_loader(self.train_dataset_path, full=full, ortho=ortho,
+                                                    transforms=transforms, normalize=normalize)
+        self.train_dataloader = DataLoader(self.train_dataset, loader_size, shuffle=True, num_workers=0)
         self.test_dataset_path = os.path.join(self.datasets, "test")
-        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=ortho)
-        self.test_dataloader = DataLoader(self.test_dataset, 64, shuffle=True, num_workers=0)
+        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=ortho, normalize=normalize)
+        self.test_dataloader = DataLoader(self.test_dataset, loader_size, shuffle=True, num_workers=0)
         self.criterion = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
@@ -57,18 +60,15 @@ if __name__ == "__main__":
     # parser.add_argument("-m", "--model", type=str, help="Model to train ('FC', 'LSTM', 'VAE'")
     # parser.add_argument("-d", "--dataset", action=str, help="subfolder of the datasets folder")
     # args = parser.parse_args()
-    name = "CNN2d"
-    model = CNN2d((180, 180))
+    name = "LSTM"
+    model = LSTM(hidden_layer_size=16, bidirectional=True)
     dataset = "full_corrected_dataset"
     criterion = nn.CrossEntropyLoss()
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     # manager = Manager(name, model, dataset, criterion, optimizer, VAE=False, ortho=lambda x,y :np.polynomial.chebyshev.chebfit(x,y,7))
-    transforms = Compose([
-        PlotToImage((180,180), "cubic")
-    ])
-    manager = Manager(name, model, dataset, criterion, optimizer, transforms=transforms)
+    manager = Manager(name, model, dataset, criterion, optimizer)
     manager.run(500)
     # cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
     # result_dataframe = pd.DataFrame(columns=cols)
