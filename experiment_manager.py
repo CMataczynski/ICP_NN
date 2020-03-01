@@ -3,10 +3,11 @@ import os
 import torch.optim
 from torch import nn
 from torch.utils.data import DataLoader
+from torchvision.transforms import Compose
 
-from models.FCmodel import FCmodel
+from models.CNNmodel import CNN2d
 from training_loop import Trainer, VAETrainer
-from utils import Initial_dataset_loader, get_fourier_coeff
+from utils import Initial_dataset_loader, get_fourier_coeff, PlotToImage, ShortenOrElongateTransform
 import pandas as pd
 import numpy as np
 
@@ -56,34 +57,38 @@ if __name__ == "__main__":
     # parser.add_argument("-m", "--model", type=str, help="Model to train ('FC', 'LSTM', 'VAE'")
     # parser.add_argument("-d", "--dataset", action=str, help="subfolder of the datasets folder")
     # args = parser.parse_args()
-    # name = "FC_cheby"
-    # model = FCmodel(8, 4, 6, 4)
-    # dataset = "full_corrected_dataset"
-    # criterion = nn.CrossEntropyLoss()
-    # # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    # # optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
+    name = "CNN2d"
+    model = CNN2d((180, 180))
+    dataset = "full_corrected_dataset"
+    criterion = nn.CrossEntropyLoss()
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.005, momentum=0.9, nesterov=True, weight_decay=0.0001)
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     # manager = Manager(name, model, dataset, criterion, optimizer, VAE=False, ortho=lambda x,y :np.polynomial.chebyshev.chebfit(x,y,7))
-    # manager.run(500)
-    cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
-    result_dataframe = pd.DataFrame(columns=cols)
-    length = 500
-    rootdir = os.path.join(os.getcwd(), 'experiments')
-    dataset = "full_splitted_dataset"
-    datasets = os.path.join(os.getcwd(), "datasets", dataset)
-    train_dataset_path = os.path.join(datasets, "train")
-    train_dataset = Initial_dataset_loader(train_dataset_path)
-    weights = train_dataset.get_class_weights()
-    train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
-    weights_5cls = train_dataset.get_class_weights()
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    weights_5cls = weights_5cls.to(device)
-    weights = weights.to(device)
-    model = FCmodel(178, 4, 32, 16)
-    name_full = "try"
-    criterion = nn.CrossEntropyLoss(weights)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=get_fourier_coeff)
-    manager.run(10)
-    result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
-    print(result_dataframe)
+    transforms = Compose([
+        PlotToImage((180,180), "cubic")
+    ])
+    manager = Manager(name, model, dataset, criterion, optimizer, transforms=transforms)
+    manager.run(500)
+    # cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
+    # result_dataframe = pd.DataFrame(columns=cols)
+    # length = 500
+    # rootdir = os.path.join(os.getcwd(), 'experiments')
+    # dataset = "full_splitted_dataset"
+    # datasets = os.path.join(os.getcwd(), "datasets", dataset)
+    # train_dataset_path = os.path.join(datasets, "train")
+    # train_dataset = Initial_dataset_loader(train_dataset_path)
+    # weights = train_dataset.get_class_weights()
+    # train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
+    # weights_5cls = train_dataset.get_class_weights()
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # weights_5cls = weights_5cls.to(device)
+    # weights = weights.to(device)
+    # model = FCmodel(178, 4, 32, 16)
+    # name_full = "try"
+    # criterion = nn.CrossEntropyLoss(weights)
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    # manager = Manager(name_full, model, dataset, criterion, optimizer, VAE=False, ortho=get_fourier_coeff)
+    # manager.run(10)
+    # result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
+    # print(result_dataframe)

@@ -144,7 +144,7 @@ class ShortenOrElongateTransform:
         self.probability = probability
         self.kind = kind
 
-    def __call__(self, x:torch.Tensor):
+    def __call__(self, x: torch.Tensor):
         np_x = np.trim_zeros(x.numpy())
         elongate_available = False
         shorten_available = False
@@ -165,7 +165,6 @@ class ShortenOrElongateTransform:
                 prob_shorten = self.probability
 
         roll = random.random()
-
         if roll <= prob_shorten and shorten_available:
             rest = random.randint(0, multiplier-1)
             return_val = np.array([i for num, i in enumerate(np_x) if num % multiplier == rest])
@@ -183,7 +182,7 @@ class ShortenOrElongateTransform:
 
 
 class PlotToImage:
-    def __init__(self, size, interpolation):
+    def __init__(self, size, interpolation = "cubic"):
         self.size = size
         self.interpolation = interpolation
 
@@ -200,4 +199,4 @@ class PlotToImage:
                 background[i, mn:mx] = 1
             else:
                 background[i, int(np.floor(new_x[i]*(self.size[1]-1)))] = 1
-        return torch.tensor(background)
+        return torch.tensor(background).unsqueeze(0)
