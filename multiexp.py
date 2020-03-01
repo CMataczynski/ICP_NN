@@ -11,7 +11,7 @@ from models.RNNmodel import LSTM, GRU, LSTMFCN
 from utils import Initial_dataset_loader, get_fourier_coeff, ShortenOrElongateTransform, transform_fourier, PlotToImage
 import pandas as pd
 import numpy as np
-from torchvision.transforms import Compose
+from torchvision.transforms import Compose, Lambda
 
 
 length = 500
@@ -62,7 +62,10 @@ experiments = [
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                transform_fourier
+                Lambda(transform_fourier)
+            ]),
+            "test_transforms": Compose([
+                Lambda(transform_fourier)
             ]),
             "loader_size": 64,
             "normalize": True
@@ -82,7 +85,10 @@ experiments = [
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                transform_fourier
+                Lambda(transform_fourier)
+            ]),
+            "test_transforms": Compose([
+                Lambda(transform_fourier)
             ]),
             "loader_size": 64,
             "normalize": True
@@ -102,7 +108,10 @@ experiments = [
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                transform_fourier
+                Lambda(transform_fourier)
+            ]),
+            "test_transforms": Compose([
+                Lambda(transform_fourier)
             ]),
             "loader_size": 64,
             "normalize": True
@@ -123,6 +132,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -142,6 +152,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -161,6 +172,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -175,6 +187,9 @@ experiments = [
             "full": True,
             "ortho": None,
             "transforms": Compose([
+                PlotToImage((180, 180))
+            ]),
+            "test_transforms": Compose([
                 PlotToImage((180, 180))
             ]),
             "loader_size": 16,
@@ -196,6 +211,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -214,7 +230,10 @@ experiments = [
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                transform_fourier
+                Lambda(transform_fourier)
+            ]),
+            "test_transforms": Compose([
+                Lambda(transform_fourier)
             ]),
             "loader_size": 64,
             "normalize": True
@@ -234,7 +253,10 @@ experiments = [
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                transform_fourier
+                Lambda(transform_fourier)
+            ]),
+            "test_transforms": Compose([
+                Lambda(transform_fourier)
             ]),
             "loader_size": 64,
             "normalize": True
@@ -254,7 +276,10 @@ experiments = [
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                transform_fourier
+                Lambda(transform_fourier)
+            ]),
+            "test_transforms": Compose([
+                Lambda(transform_fourier)
             ]),
             "loader_size": 64,
             "normalize": True
@@ -275,6 +300,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -294,6 +320,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -313,6 +340,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "loader_size": 64,
             "normalize": True
         }
@@ -327,6 +355,9 @@ experiments = [
             "full": False,
             "ortho": None,
             "transforms": Compose([
+                PlotToImage((180, 180))
+            ]),
+            "test_transforms": Compose([
                 PlotToImage((180, 180))
             ]),
             "loader_size": 16,
@@ -352,6 +383,7 @@ if __name__ == "__main__":
                           full=experiment["manager"]["full"],
                           ortho=experiment["manager"]["ortho"],
                           transforms=experiment["manager"]["transforms"],
+                          test_transforms=experiment["manager"]["test_transforms"],
                           loader_size=experiment["manager"]["loader_size"],
                           normalize=experiment["manager"]["normalize"])
         manager.run(length)

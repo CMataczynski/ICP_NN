@@ -15,7 +15,7 @@ import numpy as np
 
 class Manager:
     def __init__(self, experiment_name, model, dataset, criterion, optimizer, scheduler=None, VAE=False, full=False,
-                 ortho=None, transforms=None, loader_size=64, normalize=True):
+                 ortho=None, transforms=None, loader_size=64, normalize=True, test_transforms=None):
         self.experiment_name = self._get_full_name(experiment_name)
         self.model = model
         self.datasets = os.path.join(os.getcwd(), "datasets", dataset)
@@ -24,7 +24,8 @@ class Manager:
                                                     transforms=transforms, normalize=normalize)
         self.train_dataloader = DataLoader(self.train_dataset, loader_size, shuffle=True, num_workers=0)
         self.test_dataset_path = os.path.join(self.datasets, "test")
-        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=ortho, normalize=normalize)
+        self.test_dataset = Initial_dataset_loader(self.test_dataset_path, full=full, ortho=ortho,
+                                                   transforms=test_transforms, normalize=normalize)
         self.test_dataloader = DataLoader(self.test_dataset, loader_size, shuffle=True, num_workers=0)
         self.criterion = criterion
         self.optimizer = optimizer
