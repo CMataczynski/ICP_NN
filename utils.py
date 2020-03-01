@@ -20,7 +20,7 @@ def transform_fourier(y):
     out.append(fft[0].real)
     out += fft[1:-1].real
     out += -fft[1:-1].imag
-    return out
+    return torch.tensor(out, dtype=torch.double)
 
 
 def get_fourier_coeff(x, y):
