@@ -1,5 +1,5 @@
 import os
-
+import random
 import numpy as np
 import pandas as pd
 import torch
@@ -8,6 +8,7 @@ from textwrap import wrap
 import re
 import itertools
 import matplotlib
+from scipy import interpolate
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 
@@ -65,7 +66,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
 
 class Initial_dataset_loader(Dataset):
     def __init__(self, dataset_folder, transforms=None, full=False, ortho=None, normalize=True):
-        padding_minimum = torch.zeros(180)
+        padding_minimum = 180
         dataframes = []
         labels = []
         add = False
@@ -87,7 +88,9 @@ class Initial_dataset_loader(Dataset):
                 if normalize:
                     data = data - np.min(data)
                     data = data / np.max(data)
-                tensors.append(torch.tensor(data, dtype=torch.double))
+                bckg = np.zeros(padding_minimum)
+                bckg[-len(data):] = data
+                tensors.append(torch.tensor(bckg, dtype=torch.double))
             else:
                 x = np.copy(df.iloc[:, 0:].values[:, 0])
                 x = x - x.mean()
@@ -98,14 +101,6 @@ class Initial_dataset_loader(Dataset):
                     y = y / np.max(y)
                 tensors.append(torch.tensor(y, dtype=torch.double))
 
-        if ortho is None:
-            tensors.append(padding_minimum)
-
-        tensors = torch.nn.utils.rnn.pad_sequence(tensors, batch_first=True)
-
-        if ortho is None:
-            tensors = tensors[:-1]
-        print(tensors.shape)
         self.whole_set = {
             'data': tensors,
             'id': torch.tensor(labels, dtype=torch.long).view(-1)
@@ -130,8 +125,8 @@ class Initial_dataset_loader(Dataset):
             idx = idx.tolist()
         label = None
         data = self.whole_set['data'][idx]
-        # if self.transforms:
-        #    image = self.transforms(image)
+        if self.transforms is not None:
+           data = self.transforms(data)
         if 'id' in self.whole_set:
             label = self.whole_set['id'][idx].clone().detach()
 
@@ -139,3 +134,70 @@ class Initial_dataset_loader(Dataset):
             "image": data,
             "label": label
         }
+
+
+class ShortenOrElongateTransform:
+    def __init__(self, min_length=16, max_length=180, probability=0.5, max_multiplier=2, kind="cubic"):
+        self.min_length = min_length
+        self.max_length = max_length
+        self.max_multiplier = max_multiplier
+        self.probability = probability
+        self.kind = kind
+
+    def __call__(self, x:torch.Tensor):
+        np_x = np.trim_zeros(x.numpy())
+        elongate_available = False
+        shorten_available = False
+        prob_elongate = 0
+        prob_shorten = 0
+        multiplier = random.randint(2, self.max_multiplier)
+        if len(np_x) > multiplier * self.min_length:
+            shorten_available = True
+            prob_shorten = self.probability/2
+        if multiplier*len(np_x) < self.max_length:
+            elongate_available = True
+            if shorten_available:
+                prob_elongate = self.probability/2
+            else:
+                prob_elongate = self.probability
+        else:
+            if shorten_available:
+                prob_shorten = self.probability
+
+        roll = random.random()
+
+        if roll <= prob_shorten and shorten_available:
+            rest = random.randint(0, multiplier-1)
+            return_val = np.array([i for num, i in enumerate(np_x) if num % multiplier == rest])
+        elif roll <= prob_elongate+prob_shorten and elongate_available:
+            interp_func = interpolate.interp1d(np.arange(0, len(np_x), 1), np_x, kind=self.kind)
+            xnew = np.arange(0, len(np_x) - 1 + 1 / multiplier, 1 / multiplier)
+            return_val = np.array(interp_func(xnew))
+        else:
+            return_val = np_x
+
+        ret_shape = np.zeros(self.max_length)
+        ret_shape[-len(return_val):] = return_val
+        return_val = torch.tensor(ret_shape)
+        return return_val
+
+
+class PlotToImage:
+    def __init__(self, size, interpolation):
+        self.size = size
+        self.interpolation = interpolation
+
+    def __call__(self, x: torch.Tensor):
+        np_x = np.trim_zeros(x.numpy())
+        background = np.zeros(self.size)
+        interp_func = interpolate.interp1d(np.arange(0, len(np_x), 1), np_x, kind=self.interpolation)
+        new_t = np.linspace(0, len(np_x)-1, self.size[0])
+        new_x = interp_func(new_t)
+        for i in range(len(new_t)):
+            if i > 0:
+                mx = max(int(np.floor(new_x[i-1]*(self.size[1]-1))), int(np.floor(new_x[i]*(self.size[1]-1))))
+                mn = min(int(np.floor(new_x[i-1]*(self.size[1]-1))), int(np.floor(new_x[i]*(self.size[1]-1))))
+                background[i, mn:mx] = 1
+            else:
+                background[i, int(np.floor(new_x[i]*(self.size[1]-1)))] = 1
+        return torch.tensor(background)

@@ -82,3 +82,21 @@ class BlockFCN(nn.Module):
         # apply Global Average Pooling 1D
         y = self.global_pooling(x)
         return y
+
+
+
+class BlockConv2d(nn.Module):
+    def __init__(self, in_channel=1, out_channel=128, kernel_size=8, momentum=0.99, epsilon=0.001, norm=True, stride=1):
+        super().__init__()
+        self.norm = norm
+        self.conv = nn.Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride)
+        if norm:
+            self.batch_norm = nn.BatchNorm2d(num_features=out_channel, eps=epsilon, momentum=momentum)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        if self.norm:
+            x = self.batch_norm(x)
+        y = self.relu(x)
+        return y
