@@ -20,6 +20,9 @@ def transform_fourier(y):
     out.append(fft[0].real)
     out += fft[1:-1].real
     out += -fft[1:-1].imag
+    out = np.array(out)
+    out = out - out.min()
+    out = out / out.max()
     return torch.tensor(out, dtype=torch.double)
 
 
@@ -76,7 +79,8 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
 
 
 class Initial_dataset_loader(Dataset):
-    def __init__(self, dataset_folder, transforms=None, full=False, ortho=None, normalize=True):
+    def __init__(self, dataset_folder, transforms=None, full=False, ortho=None, normalize=True,
+                 image_size=None):
         padding_minimum = 180
         dataframes = []
         labels = []
@@ -93,24 +97,33 @@ class Initial_dataset_loader(Dataset):
             if add:
                 dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
         tensors = []
+        if image_size is not None:
+            plotter = PlotToImage(image_size)
+
         for df in dataframes:
-            if ortho is None:
-                data = df.iloc[:, 1:].values[:, 0]
-                if normalize:
-                    data = data - np.min(data)
-                    data = data / np.max(data)
-                bckg = np.zeros(padding_minimum)
-                bckg[-len(data):] = data
-                tensors.append(torch.tensor(bckg, dtype=torch.double))
+            if image_size is None:
+                if ortho is None:
+                    data = df.iloc[:, 1:].values[:, 0]
+                    if normalize:
+                        data = data - np.min(data)
+                        data = data / np.max(data)
+                    bckg = np.zeros(padding_minimum)
+                    bckg[-len(data):] = data
+                    tensors.append(torch.tensor(bckg, dtype=torch.double))
+                else:
+                    x = np.copy(df.iloc[:, 0:].values[:, 0])
+                    x = x - x.mean()
+                    y = np.copy(df.iloc[:, 1:].values[:, 0])
+                    y = ortho(x, y)
+                    if normalize:
+                        y = y - np.min(y)
+                        y = y / np.max(y)
+                    tensors.append(torch.tensor(y, dtype=torch.double))
             else:
-                x = np.copy(df.iloc[:, 0:].values[:, 0])
-                x = x - x.mean()
-                y = np.copy(df.iloc[:, 1:].values[:, 0])
-                y = ortho(x, y)
-                if normalize:
-                    y = y - np.min(y)
-                    y = y / np.max(y)
-                tensors.append(torch.tensor(y, dtype=torch.double))
+                data = df.iloc[:, 1:].values[:, 0]
+                data = data - np.min(data)
+                data = data / np.max(data)
+                tensors.append(plotter(torch.tensor(data)))
 
         self.whole_set = {
             'data': tensors,

@@ -67,6 +67,7 @@ experiments = [
             "test_transforms": Compose([
                 Lambda(transform_fourier)
             ]),
+            'image_size': None,
             "loader_size": 64,
             "normalize": True
         }
@@ -75,7 +76,7 @@ experiments = [
         "model": CNN(178, 5),
         "name_full": "NormalizedFourier_CNN_5cls_weighted",
         "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
+        "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
         "manager": {
             "VAE": False,
             "full": True,
@@ -90,6 +91,7 @@ experiments = [
             "test_transforms": Compose([
                 Lambda(transform_fourier)
             ]),
+            'image_size': None,
             "loader_size": 64,
             "normalize": True
         }
@@ -113,6 +115,7 @@ experiments = [
             "test_transforms": Compose([
                 Lambda(transform_fourier)
             ]),
+            'image_size': None,
             "loader_size": 64,
             "normalize": True
         }
@@ -132,6 +135,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -152,6 +156,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -172,6 +177,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -186,12 +192,9 @@ experiments = [
             "VAE": False,
             "full": True,
             "ortho": None,
-            "transforms": Compose([
-                PlotToImage((180, 180))
-            ]),
-            "test_transforms": Compose([
-                PlotToImage((180, 180))
-            ]),
+            "transforms": None,
+            "test_transforms": None,
+            "image_size": (180, 180),
             "loader_size": 16,
             "normalize": True
         }
@@ -211,6 +214,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -235,6 +239,7 @@ experiments = [
             "test_transforms": Compose([
                 Lambda(transform_fourier)
             ]),
+            'image_size': None,
             "loader_size": 64,
             "normalize": True
         }
@@ -258,6 +263,7 @@ experiments = [
             "test_transforms": Compose([
                 Lambda(transform_fourier)
             ]),
+            'image_size': None,
             "loader_size": 64,
             "normalize": True
         }
@@ -281,6 +287,7 @@ experiments = [
             "test_transforms": Compose([
                 Lambda(transform_fourier)
             ]),
+            'image_size': None,
             "loader_size": 64,
             "normalize": True
         }
@@ -300,6 +307,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -320,6 +328,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -340,6 +349,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            'image_size': None,
             "test_transforms": None,
             "loader_size": 64,
             "normalize": True
@@ -354,12 +364,9 @@ experiments = [
             "VAE": False,
             "full": False,
             "ortho": None,
-            "transforms": Compose([
-                PlotToImage((180, 180))
-            ]),
-            "test_transforms": Compose([
-                PlotToImage((180, 180))
-            ]),
+            "transforms": None,
+            "test_transforms": None,
+            "image_size": (180, 180),
             "loader_size": 16,
             "normalize": True
         }
@@ -385,7 +392,8 @@ if __name__ == "__main__":
                           transforms=experiment["manager"]["transforms"],
                           test_transforms=experiment["manager"]["test_transforms"],
                           loader_size=experiment["manager"]["loader_size"],
-                          normalize=experiment["manager"]["normalize"])
+                          normalize=experiment["manager"]["normalize"],
+                          image_size=experiment["manager"]["image_size"])
         manager.run(length)
         result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
         # except:
