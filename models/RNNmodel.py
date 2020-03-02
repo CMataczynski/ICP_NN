@@ -31,8 +31,8 @@ class LSTM(nn.Module):
             self.linear = None
 
     def forward(self, input_seq):
-        input_seq = torch.transpose(input_seq, 0, 1)
-        input_seq = input_seq.unsqueeze(2)
+        input_seq = input_seq.unsqueeze(0)
+        # input_seq = torch.transpose(input_seq, 0, 1)
         lstm_out, self.hidden_cell = self.lstm(input_seq)
         if self.linear is not None:
             predictions = self.linear(lstm_out[-1, :, :])
@@ -68,8 +68,8 @@ class GRU(nn.Module):
             self.linear = None
 
     def forward(self, input_seq):
-        input_seq = torch.transpose(input_seq, 0, 1)
-        input_seq = input_seq.unsqueeze(2)
+        # input_seq = torch.transpose(input_seq, 0, 1)
+        input_seq = input_seq.unsqueeze(0)
         gru_out, self.hidden_cell = self.gru(input_seq)
         if self.linear is not None:
             predictions = self.linear(gru_out[-1,:,:])

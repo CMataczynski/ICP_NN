@@ -44,6 +44,7 @@ experiments = [
                                            probability=0.66,
                                            max_multiplier=3)
             ]),
+            "test_transforms": None,
             "image_size": None,
             "loader_size": 64,
             "normalize": True
@@ -143,7 +144,7 @@ experiments = [
         }
     },
     {
-        "model": GRU(1, output_size=5, hidden_layer_size=16),
+        "model": GRU(180, output_size=5, hidden_layer_size=16),
         "name_full": "RAW_GRU_hidden16_5cls_weighted",
         "criterion": nn.CrossEntropyLoss(),
         "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
@@ -164,7 +165,7 @@ experiments = [
         }
     },
     {
-        "model": LSTM(input_size=1, hidden_layer_size=16, output_size=5, bidirectional=True),
+        "model": LSTM(input_size=180, hidden_layer_size=16, output_size=5, bidirectional=True),
         "name_full": "Raw_LSTM_full_5cls_hidden_bidir_weighted_1",
         "criterion": nn.CrossEntropyLoss(weights_5cls),
         "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
@@ -315,7 +316,7 @@ experiments = [
         }
     },
     {
-        "model": GRU(1, output_size=4, hidden_layer_size=16),
+        "model": GRU(180, output_size=4, hidden_layer_size=16),
         "name_full": "RAW_GRU_hidden16_4cls_weighted",
         "criterion": nn.CrossEntropyLoss(),
         "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
@@ -336,7 +337,7 @@ experiments = [
         }
     },
     {
-        "model": LSTM(input_size=1, hidden_layer_size=16, output_size=4, bidirectional=True),
+        "model": LSTM(input_size=180, hidden_layer_size=16, output_size=4, bidirectional=True),
         "name_full": "Raw_LSTM_full_4cls_hidden_bidir_weighted_1",
         "criterion": nn.CrossEntropyLoss(weights_5cls),
         "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
@@ -383,10 +384,10 @@ if __name__ == "__main__":
     for experiment in experiments:
         model = experiment["model"]
         name_full = experiment["name_full"]
-        # try:
-        criterion = experiment["criterion"]
-        optimizer = experiment["optimizer"](model.parameters())
-        manager = Manager(name_full, model, dataset, criterion, optimizer,
+        try:
+            criterion = experiment["criterion"]
+            optimizer = experiment["optimizer"](model.parameters())
+            manager = Manager(name_full, model, dataset, criterion, optimizer,
                           VAE=experiment["manager"]["VAE"],
                           full=experiment["manager"]["full"],
                           ortho=experiment["manager"]["ortho"],
@@ -395,11 +396,11 @@ if __name__ == "__main__":
                           loader_size=experiment["manager"]["loader_size"],
                           normalize=experiment["manager"]["normalize"],
                           image_size=experiment["manager"]["image_size"])
-        manager.run(length)
-        result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
-        # except:
-        #     log.append("failed model " + name_full)
-        #     continue
+            manager.run(length)
+            result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
+        except:
+            log.append("failed model " + name_full)
+            continue
 
     result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name+".csv"), sep=';', decimal=',')
     print(log)
