@@ -205,7 +205,7 @@ def accuracy(model, dataset_loader):
 
         target_class = np.argmax(y, axis=1)
         predicted_class = np.argmax(model(x).cpu().detach().numpy(), axis=1)
-        f1 = f1_score(y, predicted_class, average='weighted')
+        f1 = f1_score(target_class, predicted_class, average='weighted')
         total_correct += np.sum(predicted_class == target_class)
     return total_correct / len(dataset_loader.dataset), f1
 
@@ -332,7 +332,7 @@ if __name__ == '__main__':
                 if f1 > best_acc:
                     torch.save({'state_dict': model.state_dict()}, os.path.join(os.getcwd(),
                                                                                               "experiments", "ODE",
-                                                                                              'model.pth'))
+                                                                                              'model_1.pth'))
                     best_acc = f1
                 writer.add_scalar("Accuracy/test", val_acc, itr//batches_per_epoch)
                 writer.add_scalar("F1_score/test", f1, itr//batches_per_epoch)
