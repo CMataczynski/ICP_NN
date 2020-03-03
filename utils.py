@@ -11,6 +11,7 @@ import matplotlib
 from scipy import interpolate
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
+from PyEMD import EMD
 
 
 def transform_fourier(y):
@@ -161,17 +162,28 @@ class Initial_dataset_loader(Dataset):
 
 
 class ShortenOrElongateTransform:
-    def __init__(self, min_length=16, max_length=180, probability=0.5, max_multiplier=2, kind="cubic"):
+    def __init__(self, min_length=16, max_length=180, probability=0.5, max_multiplier=2, kind="cubic",
+                 window_min=16, window_max=-1):
+        assert window_min <= window_max, "maximum should be greater or equal of the minimum length"
+        assert min_length <= max_length, "maximum should be greater or equal of the minimum length"
+
         self.min_length = min_length
         self.max_length = max_length
         self.max_multiplier = max_multiplier
         self.probability = probability
         self.kind = kind
+        if window_max >= max_length or window_max < 0:
+            self.window_max = max_length
+        else:
+            self.window_max = window_max
+
+        self.window_min = window_min
 
     def __call__(self, x: torch.Tensor):
         np_x = np.trim_zeros(x.numpy())
         elongate_available = False
         shorten_available = False
+        window_length = min(len(np_x), random.randint(self.window_min, self.window_max))
         prob_elongate = 0
         prob_shorten = 0
         multiplier = random.randint(2, self.max_multiplier)
@@ -224,3 +236,12 @@ class PlotToImage:
             else:
                 background[i, int(np.floor(new_x[i]*(self.size[1]-1)))] = 1
         return torch.tensor(background).unsqueeze(0)
+
+
+class TransformToEmd:
+    def __init__(self):
+        pass
+
+    def __call__(self, x, y):
+        imf = EMD().emd(y, x)
+        return imf[0]

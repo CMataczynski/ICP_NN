@@ -12,6 +12,7 @@ from utils import Initial_dataset_loader, get_fourier_coeff, ShortenOrElongateTr
 import pandas as pd
 import numpy as np
 from torchvision.transforms import Compose, Lambda
+from utils import  TransformToEmd
 
 
 length = 500
@@ -27,6 +28,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 weights_5cls = weights_5cls.to(device)
 weights = weights.to(device)
 train_dataset = None
+ortho_emd = TransformToEmd()
 
 experiments = [
     {
@@ -37,7 +39,7 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
+            "ortho": ortho_emd,
             "transforms": Compose([
                 ShortenOrElongateTransform(min_length=32,
                                            max_length=180,
@@ -51,72 +53,21 @@ experiments = [
         }
     },
     {
-        "model": LSTMFCN(178, 5),
-        "name_full": "NormalizedFourier_LSTM_FCN_5cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": True,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3),
-                Lambda(transform_fourier)
-            ]),
-            "test_transforms": Compose([
-                Lambda(transform_fourier)
-            ]),
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": CNN(178, 5),
+        "model": CNN(180, 5),
         "name_full": "NormalizedFourier_CNN_5cls_weighted",
         "criterion": nn.CrossEntropyLoss(weights_5cls),
         "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
+            "ortho": ortho_emd,
             "transforms": Compose([
                 ShortenOrElongateTransform(min_length=32,
                                            max_length=180,
                                            probability=0.66,
                                            max_multiplier=3),
-                Lambda(transform_fourier)
             ]),
-            "test_transforms": Compose([
-                Lambda(transform_fourier)
-            ]),
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": CNN(178, 5),
-        "name_full": "NormalizedFourier_CNN_5cls",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": True,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3),
-                Lambda(transform_fourier)
-            ]),
-            "test_transforms": Compose([
-                Lambda(transform_fourier)
-            ]),
+            "test_transforms": None,
             'image_size': None,
             "loader_size": 64,
             "normalize": True
@@ -130,7 +81,7 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
+            "ortho": ortho_emd,
             "transforms": Compose([
                 ShortenOrElongateTransform(min_length=32,
                                            max_length=180,
@@ -151,7 +102,7 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
+            "ortho": ortho_emd,
             "transforms": Compose([
                 ShortenOrElongateTransform(min_length=32,
                                            max_length=180,
@@ -172,7 +123,7 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
+            "ortho": ortho_emd,
             "transforms": Compose([
                 ShortenOrElongateTransform(min_length=32,
                                            max_length=180,
@@ -193,186 +144,14 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
+            "ortho": ortho_emd,
             "transforms": None,
             "test_transforms": None,
             "image_size": (180, 180),
             "loader_size": 16,
             "normalize": True
         }
-    },
-    {
-        "model": LSTMFCN(180, 4),
-        "name_full": "RAW_LSTM_FCN_4cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3)
-            ]),
-            'image_size': None,
-            "test_transforms": None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": LSTMFCN(178, 4),
-        "name_full": "NormalizedFourier_LSTM_FCN_4cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3),
-                Lambda(transform_fourier)
-            ]),
-            "test_transforms": Compose([
-                Lambda(transform_fourier)
-            ]),
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": CNN(178, 4),
-        "name_full": "NormalizedFourier_CNN_4cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3),
-                Lambda(transform_fourier)
-            ]),
-            "test_transforms": Compose([
-                Lambda(transform_fourier)
-            ]),
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": CNN(178, 4),
-        "name_full": "NormalizedFourier_CNN_5cls",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3),
-                Lambda(transform_fourier)
-            ]),
-            "test_transforms": Compose([
-                Lambda(transform_fourier)
-            ]),
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": FCmodel(180, 4),
-        "name_full": "RAW_FC_4cls_weighted",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.9, nesterov=True, weight_decay=0.0001),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3)
-            ]),
-            'image_size': None,
-            "test_transforms": None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": GRU(180, output_size=4, hidden_layer_size=16),
-        "name_full": "RAW_GRU_hidden16_4cls_weighted",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3)
-            ]),
-            'image_size': None,
-            "test_transforms": None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": LSTM(input_size=180, hidden_layer_size=16, output_size=4, bidirectional=True),
-        "name_full": "Raw_LSTM_full_4cls_hidden_bidir_weighted_1",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.66,
-                                           max_multiplier=3)
-            ]),
-            'image_size': None,
-            "test_transforms": None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
-    {
-        "model": CNN2d((180, 180), out_features=4),
-        "name_full": "Image_CNN_5cls",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": None,
-            "transforms": None,
-            "test_transforms": None,
-            "image_size": (180, 180),
-            "loader_size": 16,
-            "normalize": True
-        }
-    },
+    }
 ]
 
 
