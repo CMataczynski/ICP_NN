@@ -125,7 +125,7 @@ class ODEBlock(nn.Module):
 
     def forward(self, x):
         self.integration_time = self.integration_time.type_as(x)
-        out = odeint(self.odefunc, x, self.integration_time, rtol=1e-3, atol=1e-3)
+        out = odeint(self.odefunc, x, self.integration_time, rtol=1e-5, atol=1e-5)
         return out[1]
 
     @property
@@ -198,15 +198,18 @@ def one_hot(x, K):
 
 def accuracy(model, dataset_loader):
     total_correct = 0
+    labs = []
+    preds = []
     for data in dataset_loader:
         x = data['image'].float().to(device)
         x = x.unsqueeze(1)
         y = one_hot(np.array(data['label'].numpy()), 5)
-
         target_class = np.argmax(y, axis=1)
         predicted_class = np.argmax(model(x).cpu().detach().numpy(), axis=1)
-        f1 = f1_score(target_class, predicted_class, average='weighted')
+        labs += data['label'].tolist()
+        preds += predicted_class.tolist()
         total_correct += np.sum(predicted_class == target_class)
+    f1 = f1_score(labs, preds, average='weighted')
     return total_correct / len(dataset_loader.dataset), f1
 
 
@@ -247,23 +250,23 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
 
 
 if __name__ == '__main__':
-    writer = SummaryWriter(log_dir='experiments/' + str("ODE"))
+    writer = SummaryWriter(log_dir='experiments/' + str("ODE_4"))
     device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
-    batch_size = 1024
+    batch_size = 128
     is_odenet = True
     downsampling_layers = [
-        nn.Conv1d(1, 64, 3, 1),
-        ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
-        ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+        nn.Conv1d(1, 8, 3, 1),
+        ResBlock(8, 16, stride=2, downsample=conv1x1(8, 16, 2)),
+        ResBlock(16, 32, stride=2, downsample=conv1x1(16, 32, 2)),
     ]
 
-    feature_layers = [ODEBlock(ODEfunc(64))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
-    fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(1), Flatten(), nn.Linear(64, 5)]
+    feature_layers = [ODEBlock(ODEfunc(32))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
+    fc_layers = [norm(32), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(2), Flatten(),nn.Dropout(0.6) , nn.Linear(64, 5)]
 
     model = nn.Sequential(*downsampling_layers, *feature_layers, *fc_layers).to(device)
 
     criterion = nn.CrossEntropyLoss().to(device)
-    datasets = os.path.join(os.getcwd(), "datasets", "full_corrected_dataset")
+    datasets = os.path.join(os.getcwd(), "datasets", "full_splitted_dataset")
     train_dataset_path = os.path.join(datasets, "train")
     train_dataset = Initial_dataset_loader(train_dataset_path, full=True,
                                                 transforms=transforms.Compose([
@@ -294,7 +297,7 @@ if __name__ == '__main__':
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_fn(itr)
-
+        model.train()
         optimizer.zero_grad()
         dct = data_gen.__next__()
         x = dct["image"].float()
@@ -328,6 +331,7 @@ if __name__ == '__main__':
 
         if itr % batches_per_epoch == 0:
             with torch.no_grad():
+                model.eval()
                 val_acc, f1 = accuracy(model, test_loader)
                 if f1 > best_acc:
                     torch.save({'state_dict': model.state_dict()}, os.path.join(os.getcwd(),
