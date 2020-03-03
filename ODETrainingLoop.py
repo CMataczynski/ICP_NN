@@ -280,7 +280,7 @@ def trainODE():
     batches_per_epoch = len(train_loader)
 
     lr_fn = learning_rate_with_decay(
-        batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 95, 140],
+        batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[69, 100, 140],
         decay_rates=[1, 0.1, 0.05, 0.001]
     )
 
