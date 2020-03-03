@@ -181,13 +181,16 @@ class ShortenOrElongateTransform:
         elongate_available = False
         shorten_available = False
         window_length = min(len(np_x), random.randint(self.window_min, self.window_max))
+        window_start = random.randint(0, len(np_x)-window_length)
         prob_elongate = 0
         prob_shorten = 0
         multiplier = random.randint(2, self.max_multiplier)
-        if len(np_x) > multiplier * self.min_length:
+        shorten_length = window_length//multiplier
+        elongate_length = window_length*multiplier - window_length
+        if len(np_x) - shorten_length > self.min_length:
             shorten_available = True
             prob_shorten = self.probability/2
-        if multiplier*len(np_x) < self.max_length:
+        if elongate_length + len(np_x) < self.max_length:
             elongate_available = True
             if shorten_available:
                 prob_elongate = self.probability/2
@@ -200,11 +203,16 @@ class ShortenOrElongateTransform:
         roll = random.random()
         if roll <= prob_shorten and shorten_available:
             rest = random.randint(0, multiplier-1)
-            return_val = np.array([i for num, i in enumerate(np_x) if num % multiplier == rest])
+            window = np_x[window_start:window_start + window_length]
+            return_val = np.array([i for num, i in enumerate(window) if num % multiplier == rest])
+            # print(window_start, window_length)
+            return_val = np.append(np_x[:window_start], np.append(return_val, np_x[window_start+window_length:]))
         elif roll <= prob_elongate+prob_shorten and elongate_available:
-            interp_func = interpolate.interp1d(np.arange(0, len(np_x), 1), np_x, kind=self.kind)
-            xnew = np.arange(0, len(np_x) - 1, 1 / multiplier)
+            window = np_x[window_start:window_start + window_length]
+            interp_func = interpolate.interp1d(np.arange(0, len(window), 1), window, kind=self.kind)
+            xnew = np.arange(0, len(window) - 1, 1 / multiplier)
             return_val = np.array(interp_func(xnew))
+            return_val = np.append(np_x[:window_start], np.append(return_val, np_x[window_start+window_length:]))
         else:
             return_val = np_x
 
@@ -215,7 +223,7 @@ class ShortenOrElongateTransform:
 
 
 class PlotToImage:
-    def __init__(self, size, interpolation = "cubic"):
+    def __init__(self, size, interpolation="cubic"):
         self.size = size
         self.interpolation = interpolation
 

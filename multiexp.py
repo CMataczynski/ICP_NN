@@ -136,27 +136,48 @@ experiments = [
             "normalize": True
         }
     },
+    # {
+    #     "model": CNN2d((180, 180), out_features=5),
+    #     "name_full": "Image_CNN_5cls",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
+    #     "manager": {
+    #         "VAE": False,
+    #         "full": True,
+    #         "ortho": ortho_emd,
+    #         "transforms": None,
+    #         "test_transforms": None,
+    #         "image_size": (180, 180),
+    #         "loader_size": 16,
+    #         "normalize": True
+    #     }
+    # },
     {
-        "model": CNN2d((180, 180), out_features=5),
-        "name_full": "Image_CNN_5cls",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.005),
+        "model": LSTMFCN(180, 5),
+        "name_full": "RAW_LSTM_FCN_5cls_weighted",
+        "criterion": nn.CrossEntropyLoss(weights_5cls),
+        "optimizer": lambda x: torch.optim.Adam(x, lr=0.007),
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": ortho_emd,
-            "transforms": None,
+            "ortho": None,
+            "transforms": Compose([
+                ShortenOrElongateTransform(min_length=32,
+                                           max_length=180,
+                                           probability=0.66,
+                                           max_multiplier=3)
+            ]),
             "test_transforms": None,
-            "image_size": (180, 180),
-            "loader_size": 16,
+            "image_size": None,
+            "loader_size": 64,
             "normalize": True
         }
-    }
+    },
 ]
 
 
 if __name__ == "__main__":
-    batch_name = "Modified0303"
+    batch_name = "10.03"
     log = []
     cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
     result_dataframe = pd.DataFrame(columns=cols)
