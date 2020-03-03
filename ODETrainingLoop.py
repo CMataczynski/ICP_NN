@@ -30,9 +30,11 @@ from utils import Initial_dataset_loader, ShortenOrElongateTransform
 # args = parser.parse_args()
 #
 # if args.adjoint:
-lr = 0.1
 from torchdiffeq import odeint_adjoint as odeint
-
+lr = 0.1
+device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
+batch_size = 128
+is_odenet = True
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -249,11 +251,8 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
     return logger
 
 
-if __name__ == '__main__':
-    writer = SummaryWriter(log_dir='experiments/' + str("ODE_4"))
-    device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
-    batch_size = 128
-    is_odenet = True
+def trainODE():
+    writer = SummaryWriter(log_dir='experiments/' + str("ODE_newaug_1"))
     downsampling_layers = [
         nn.Conv1d(1, 8, 3, 1),
         ResBlock(8, 16, stride=2, downsample=conv1x1(8, 16, 2)),
@@ -288,6 +287,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
 
     best_acc = 0
+    best_f1 = 0
     batch_time_meter = RunningAverageMeter()
     f_nfe_meter = RunningAverageMeter()
     b_nfe_meter = RunningAverageMeter()
@@ -333,11 +333,12 @@ if __name__ == '__main__':
             with torch.no_grad():
                 model.eval()
                 val_acc, f1 = accuracy(model, test_loader)
-                if f1 > best_acc:
+                if f1 > best_f1:
                     torch.save({'state_dict': model.state_dict()}, os.path.join(os.getcwd(),
                                                                                               "experiments", "ODE",
                                                                                               'model_1.pth'))
-                    best_acc = f1
+                    best_f1 = f1
+                    best_acc = val_acc
                 writer.add_scalar("Accuracy/test", val_acc, itr//batches_per_epoch)
                 writer.add_scalar("F1_score/test", f1, itr//batches_per_epoch)
                 print(
@@ -371,3 +372,4 @@ if __name__ == '__main__':
     writer.add_figure("ODE - Confusion Matrix",
                       plot_confusion_matrix(labs, preds, ["T1", "T2", "T3", "T4", "A+E"]))
     writer.close()
+    return [best_acc, best_f1]

@@ -244,9 +244,12 @@ class PlotToImage:
 
 
 class TransformToEmd:
-    def __init__(self):
-        pass
+    def __init__(self, length=180):
+        self.length=length
 
     def __call__(self, x, y):
         imf = EMD().emd(y, x)
-        return imf[0]
+        mode = imf[0]
+        bckg = np.zeros(self.length)
+        bckg[:len(mode)] = mode
+        return bckg
