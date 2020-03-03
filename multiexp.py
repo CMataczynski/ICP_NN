@@ -185,24 +185,24 @@ if __name__ == "__main__":
     for experiment in experiments:
         model = experiment["model"]
         name_full = experiment["name_full"]
-        # try:
-        criterion = experiment["criterion"]
-        optimizer = experiment["optimizer"](model.parameters())
-        manager = Manager(name_full, model, dataset, criterion, optimizer,
-                      VAE=experiment["manager"]["VAE"],
-                      full=experiment["manager"]["full"],
-                      ortho=experiment["manager"]["ortho"],
-                      transforms=experiment["manager"]["transforms"],
-                      test_transforms=experiment["manager"]["test_transforms"],
-                      loader_size=experiment["manager"]["loader_size"],
-                      normalize=experiment["manager"]["normalize"],
-                      image_size=experiment["manager"]["image_size"])
-        manager.run(length)
-        result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
-        result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name + ".csv"), sep=';', decimal=',')
-        # except:
-        #     log.append("failed model " + name_full)
-        #     continue
+        try:
+            criterion = experiment["criterion"]
+            optimizer = experiment["optimizer"](model.parameters())
+            manager = Manager(name_full, model, dataset, criterion, optimizer,
+                          VAE=experiment["manager"]["VAE"],
+                          full=experiment["manager"]["full"],
+                          ortho=experiment["manager"]["ortho"],
+                          transforms=experiment["manager"]["transforms"],
+                          test_transforms=experiment["manager"]["test_transforms"],
+                          loader_size=experiment["manager"]["loader_size"],
+                          normalize=experiment["manager"]["normalize"],
+                          image_size=experiment["manager"]["image_size"])
+            manager.run(length)
+            result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
+            result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name + ".csv"), sep=';', decimal=',')
+        except:
+            log.append("failed model " + name_full)
+            continue
 
     ODE_run = trainODE()
     result_dataframe = result_dataframe.append(
