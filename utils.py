@@ -164,7 +164,7 @@ class Initial_dataset_loader(Dataset):
 class ShortenOrElongateTransform:
     def __init__(self, min_length=16, max_length=180, probability=0.5, max_multiplier=2, kind="cubic",
                  window_min=16, window_max=-1):
-        assert window_min <= window_max, "maximum should be greater or equal of the minimum length"
+        assert window_min <= window_max and window_max > 0, "maximum should be greater or equal of the minimum length"
         assert min_length <= max_length, "maximum should be greater or equal of the minimum length"
 
         self.min_length = min_length
