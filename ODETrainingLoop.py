@@ -34,7 +34,7 @@ from torchdiffeq import odeint_adjoint as odeint
 lr = 0.1
 device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
 batch_size = 128
-is_odenet = True
+is_odenet = False
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -252,7 +252,9 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
 
 
 def trainODE():
-    writer = SummaryWriter(log_dir='experiments/' + str("ODE_newaug_1"))
+    name = "Resnet"
+    writer = SummaryWriter(log_dir='experiments/' + str(name))
+    makedirs(os.path.join(os.getcwd(),"experiments", name))
     downsampling_layers = [
         nn.Conv1d(1, 8, 3, 1),
         ResBlock(8, 16, stride=2, downsample=conv1x1(8, 16, 2)),
@@ -335,7 +337,7 @@ def trainODE():
                 val_acc, f1 = accuracy(model, test_loader)
                 if f1 > best_f1:
                     torch.save({'state_dict': model.state_dict()}, os.path.join(os.getcwd(),
-                                                                                              "experiments", "ODE",
+                                                                                              "experiments", name,
                                                                                               'model_1.pth'))
                     best_f1 = f1
                     best_acc = val_acc
@@ -369,7 +371,7 @@ def trainODE():
     }
     labs = [class_dict[a] for a in labs]
     preds = [class_dict[a] for a in preds]
-    writer.add_figure("ODE - Confusion Matrix",
+    writer.add_figure(name + " - Confusion Matrix",
                       plot_confusion_matrix(labs, preds, ["T1", "T2", "T3", "T4", "A+E"]))
     writer.close()
     return [best_acc, best_f1]
