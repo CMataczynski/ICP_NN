@@ -4,6 +4,7 @@ import logging
 import time
 import numpy as np
 import torch
+import datetime as dt
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -34,7 +35,6 @@ from torchdiffeq import odeint_adjoint as odeint
 lr = 0.1
 device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
 batch_size = 128
-is_odenet = False
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -251,39 +251,43 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
     return logger
 
 
-def trainODE():
-    name = "Resnet"
+def trainODE(is_odenet=True, full=True):
+    if is_odenet:
+        name = "ODE"
+    else:
+        name = "Resnet"
+    name = str(dt.date.today()) + "_" + name
     writer = SummaryWriter(log_dir='experiments/' + str(name))
-    makedirs(os.path.join(os.getcwd(),"experiments", name))
+    makedirs(os.path.join(os.getcwd(), "experiments", name))
     downsampling_layers = [
-        nn.Conv1d(1, 8, 3, 1),
-        ResBlock(8, 16, stride=2, downsample=conv1x1(8, 16, 2)),
-        ResBlock(16, 32, stride=2, downsample=conv1x1(16, 32, 2)),
+        nn.Conv1d(1, 64, 3, 1),
+        ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+        ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
     ]
 
-    feature_layers = [ODEBlock(ODEfunc(32))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
-    fc_layers = [norm(32), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(2), Flatten(),nn.Dropout(0.6) , nn.Linear(64, 5)]
+    feature_layers = [ODEBlock(ODEfunc(64))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
+    fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(1), Flatten(), nn.Dropout(0.6), nn.Linear(64, 5)]
 
     model = nn.Sequential(*downsampling_layers, *feature_layers, *fc_layers).to(device)
 
     criterion = nn.CrossEntropyLoss().to(device)
     datasets = os.path.join(os.getcwd(), "datasets", "full_splitted_dataset")
     train_dataset_path = os.path.join(datasets, "train")
-    train_dataset = Initial_dataset_loader(train_dataset_path, full=True,
+    train_dataset = Initial_dataset_loader(train_dataset_path, full=full,
                                                 transforms=transforms.Compose([
                                                     ShortenOrElongateTransform(32,180,0.6)
                                                 ]), normalize=True)
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=0)
     test_dataset_path = os.path.join(datasets, "test")
-    test_dataset = Initial_dataset_loader(test_dataset_path, full=True, normalize=True)
+    test_dataset = Initial_dataset_loader(test_dataset_path, full=full, normalize=True)
     test_loader = DataLoader(test_dataset, batch_size, shuffle=True, num_workers=0)
 
     data_gen = inf_generator(train_loader)
     batches_per_epoch = len(train_loader)
 
     lr_fn = learning_rate_with_decay(
-        batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[69, 100, 140],
-        decay_rates=[1, 0.1, 0.05, 0.001]
+        batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
+        decay_rates=[1, 0.1, 0.01, 0.001]
     )
 
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
