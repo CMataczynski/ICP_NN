@@ -64,15 +64,18 @@ if __name__ == "__main__":
     # parser.add_argument("-m", "--model", type=str, help="Model to train ('FC', 'LSTM', 'VAE'")
     # parser.add_argument("-d", "--dataset", action=str, help="subfolder of the datasets folder")
     # args = parser.parse_args()
-    name = "LSTM"
-    model = LSTM(hidden_layer_size=16, bidirectional=True)
+    name = "Cnn2d"
+    model = CNN2d((180, 180), 5)
     dataset = "full_corrected_dataset"
     criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     # optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     # manager = Manager(name, model, dataset, criterion, optimizer, VAE=False, ortho=lambda x,y :np.polynomial.chebyshev.chebfit(x,y,7))
-    manager = Manager(name, model, dataset, criterion, optimizer)
+    manager = Manager(name, model, dataset, criterion, optimizer, full=True, loader_size=32,
+                      scheduler=torch.optim.lr_scheduler.MultiStepLR(optimizer, [60, 100, 140]),
+                      image_size=(180, 180))
     manager.run(500)
     # cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
     # result_dataframe = pd.DataFrame(columns=cols)

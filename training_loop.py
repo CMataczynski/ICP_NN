@@ -91,6 +91,8 @@ class Trainer:
                 best_net = copy.deepcopy(net)
             writer.add_scalar("Accuracy/test", correct / total, epoch)
             writer.add_scalar("F1_score/test", f1, epoch)
+            if scheduler is not None:
+                scheduler.step()
         class_dict = {
             0: "T1",
             1: "T2",
