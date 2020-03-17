@@ -34,7 +34,7 @@ from utils import Initial_dataset_loader, ShortenOrElongateTransform
 from torchdiffeq import odeint_adjoint as odeint
 lr = 0.1
 device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
-batch_size = 128
+batch_size = 256
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -251,12 +251,25 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
     return logger
 
 
-def trainODE(is_odenet=True, full=True):
+def trainODE(is_odenet=True, full=True, batch_size=256):
     if is_odenet:
         name = "ODE"
     else:
         name = "Resnet"
     name = str(dt.date.today()) + "_" + name
+
+    if full:
+        name = name + "_5cls"
+    else:
+        name = name + "_4cls"
+
+    max = 0
+    for subdir in os.listdir(os.path.join(os.getcwd(), "experiments")):
+        if name in subdir:
+            var = int(subdir.split('_')[-1])
+            if var > max:
+                max = var
+    name = name + "_" + str(max+1)
     writer = SummaryWriter(log_dir='experiments/' + str(name))
     makedirs(os.path.join(os.getcwd(), "experiments", name))
     downsampling_layers = [
@@ -275,7 +288,7 @@ def trainODE(is_odenet=True, full=True):
     train_dataset_path = os.path.join(datasets, "train")
     train_dataset = Initial_dataset_loader(train_dataset_path, full=full,
                                                 transforms=transforms.Compose([
-                                                    ShortenOrElongateTransform(32,180,0.6)
+                                                    ShortenOrElongateTransform(32,180,0.7)
                                                 ]), normalize=True)
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True, num_workers=0)
     test_dataset_path = os.path.join(datasets, "test")
@@ -286,7 +299,7 @@ def trainODE(is_odenet=True, full=True):
     batches_per_epoch = len(train_loader)
 
     lr_fn = learning_rate_with_decay(
-        batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
+        batch_size, batch_denom=batch_size, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
         decay_rates=[1, 0.1, 0.01, 0.001]
     )
 
@@ -299,7 +312,7 @@ def trainODE(is_odenet=True, full=True):
     b_nfe_meter = RunningAverageMeter()
     end = time.time()
     running_loss = 0.0
-    for itr in range(200 * batches_per_epoch):
+    for itr in range(150 * batches_per_epoch):
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_fn(itr)

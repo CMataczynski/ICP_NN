@@ -16,7 +16,7 @@ from utils import TransformToEmd
 from ODETrainingLoop import trainODE
 
 
-length = 500
+length = 150
 rootdir = os.path.join(os.getcwd(), 'experiments')
 dataset = "full_splitted_dataset"
 datasets = os.path.join(os.getcwd(), "datasets", dataset)
@@ -82,14 +82,8 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": True,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.7,
-                                           max_multiplier=3),
-                transform_fourier
-            ]),
+            "ortho": get_fourier_coeff,
+            "transforms": None,
             "test_transforms": None,
             'image_size': None,
             "loader_size": 64,
@@ -104,14 +98,8 @@ experiments = [
         "manager": {
             "VAE": False,
             "full": False,
-            "ortho": None,
-            "transforms": Compose([
-                ShortenOrElongateTransform(min_length=32,
-                                           max_length=180,
-                                           probability=0.7,
-                                           max_multiplier=3),
-                transform_fourier
-            ]),
+            "ortho": get_fourier_coeff,
+            "transforms": None,
             "test_transforms": None,
             'image_size': None,
             "loader_size": 64,
@@ -157,16 +145,16 @@ if __name__ == "__main__":
             continue
 
     ODE_runs = [
-        (True, True, "ODE_5cls"),
-        (True, False, "ODE_4cls"),
-        (False, True, "ResNet_5cls"),
-        (False, False, "ResNet_4cls")
+        (False, True, 128, "ResNet_5cls"),
+        (False, False, 128, "ResNet_4cls"),
+        (True, True, 128, "ODE_5cls"),
+        (True, False, 128, "ODE_4cls")
     ]
 
     for run in ODE_runs:
-        ODE_run = trainODE(run[0], run[1])
+        ODE_run = trainODE(run[0], run[1], run[2])
         result_dataframe = result_dataframe.append(
-            pd.DataFrame([[str(run[2]), "-"] + ODE_run], columns=cols), ignore_index=True
+            pd.DataFrame([[str(run[3]), "-"] + ODE_run], columns=cols), ignore_index=True
         )
         result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name+".csv"), sep=';', decimal=',')
     print(log)
