@@ -125,6 +125,7 @@ class Initial_dataset_loader(Dataset):
                 data = data - np.min(data)
                 data = data / np.max(data)
                 tensors.append(plotter(torch.tensor(data)))
+                # print(tensors[-1].shape)
 
         self.whole_set = {
             'data': tensors,
