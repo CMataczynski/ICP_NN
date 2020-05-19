@@ -106,8 +106,13 @@ class Initial_dataset_loader(Dataset):
                 if ortho is None:
                     data = df.iloc[:, 1:].values[:, 0]
                     if normalize:
+                        # print("min: {}".format(np.min(data)))
                         data = data - np.min(data)
+                        # print("max: {}".format(np.max(data)))
                         data = data / np.max(data)
+                    if len(data) > padding_minimum:
+                        start = (len(data)-padding_minimum)//2
+                        data = data[start:start+padding_minimum]
                     bckg = np.zeros(padding_minimum)
                     bckg[-len(data):] = data
                     tensors.append(torch.tensor(bckg, dtype=torch.double))
