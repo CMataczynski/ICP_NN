@@ -6,3 +6,4 @@ datasets/
 experiments/
 results/
 .ipynb_checkpoints/
+*.bat

@@ -1,4 +1,4 @@
-from models.models_util import BlockConv, BlockConv2d, conv1x1, conv3x3, norm, ResBlock, ConcatConv2d
+from models.models_util import BlockConv, conv1x1, conv3x3, norm, ResBlock, ODEBlock, ODEfunc
 
 import numpy as np
 import torch
@@ -6,6 +6,14 @@ import torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
 
 
+class Flatten(nn.Module):
+
+    def __init__(self):
+        super(Flatten, self).__init__()
+
+    def forward(self, x):
+        shape = torch.prod(torch.tensor(x.shape[1:])).item()
+        return x.view(-1, shape)
 
 class SiameseResNet(nn.Module):
     def __init__(self, no_classes, feature_extraction_layers=6):
