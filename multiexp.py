@@ -9,7 +9,7 @@ from models.AEmodel import VAE, CNNVAE, AE, CNNAE
 from models.CNNmodel import CNN, CNN2d
 from models.FCmodel import FCmodel
 from models.RNNmodel import LSTM, GRU, LSTMFCN
-from utils import Initial_dataset_loader, get_fourier_coeff, ShortenOrElongateTransform, transform_fourier, PlotToImage
+from utils import Initial_dataset_loader, get_fourier_coeff, ShortenOrElongateTransform, transform_fourier, PlotToImage, resampling_dataset_loader
 import pandas as pd
 import numpy as np
 from torchvision.transforms import Compose, Lambda
@@ -23,9 +23,9 @@ rootdir = os.path.join(os.getcwd(), 'experiments')
 dataset = "full_extended_dataset"
 datasets = os.path.join(os.getcwd(), "datasets", dataset)
 train_dataset_path = os.path.join(datasets, "train")
-train_dataset = Initial_dataset_loader(train_dataset_path)
+train_dataset = resampling_dataset_loader(train_dataset_path)
 weights = train_dataset.get_class_weights()
-train_dataset = Initial_dataset_loader(train_dataset_path, full=True)
+train_dataset = resampling_dataset_loader(train_dataset_path, full=True)
 weights_5cls = train_dataset.get_class_weights()
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 weights_5cls = weights_5cls.to(device)
@@ -34,23 +34,23 @@ train_dataset = None
 ortho_emd = TransformToEmd()
 
 experiments = [
-{
-        "model": CNN(178, 5),
-        "name_full": "NormalizedFourier_CNN_5cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights_5cls),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "scheduler": lambda x: torch.optim.lr_scheduler.MultiStepLR(x, [60, 90, 130]),
-        "manager": {
-            "VAE": False,
-            "full": True,
-            "ortho": get_fourier_coeff,
-            "transforms": None,
-            "test_transforms": None,
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    },
+# {
+#         "model": CNN(178, 5),
+#         "name_full": "NormalizedFourier_CNN_5cls_weighted",
+#         "criterion": nn.CrossEntropyLoss(weights_5cls),
+#         "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
+#         "scheduler": lambda x: torch.optim.lr_scheduler.MultiStepLR(x, [60, 90, 130]),
+#         "manager": {
+#             "VAE": False,
+#             "full": True,
+#             "ortho": get_fourier_coeff,
+#             "transforms": None,
+#             "test_transforms": None,
+#             'image_size': None,
+#             "loader_size": 64,
+#             "normalize": True
+#         }
+#     },
 {
         "model": LSTMFCN(180, 5),
         "name_full": "RAW_LSTM_FCN_5cls_weighted",
@@ -94,29 +94,28 @@ experiments = [
             "loader_size": 64,
             "normalize": True
         }
-    },
-    {
-        "model": CNN(178, 4),
-        "name_full": "NormalizedFourier_CNN_4cls_weighted",
-        "criterion": nn.CrossEntropyLoss(weights),
-        "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
-        "scheduler": lambda x: torch.optim.lr_scheduler.MultiStepLR(x, [60, 90, 130]),
-        "manager": {
-            "VAE": False,
-            "full": False,
-            "ortho": get_fourier_coeff,
-            "transforms": None,
-            "test_transforms": None,
-            'image_size': None,
-            "loader_size": 64,
-            "normalize": True
-        }
-    }
-]
+    }]
+    # {
+    #     "model": CNN(178, 4),
+    #     "name_full": "NormalizedFourier_CNN_4cls_weighted",
+    #     "criterion": nn.CrossEntropyLoss(weights),
+    #     "optimizer": lambda x: torch.optim.Adam(x, lr=0.01),
+    #     "scheduler": lambda x: torch.optim.lr_scheduler.MultiStepLR(x, [60, 90, 130]),
+    #     "manager": {
+    #         "VAE": False,
+    #         "full": False,
+    #         "ortho": get_fourier_coeff,
+    #         "transforms": None,
+    #         "test_transforms": None,
+    #         'image_size': None,
+    #         "loader_size": 64,
+    #         "normalize": True
+    #     }
+    # }
 
 
 if __name__ == "__main__":
-    batch_name = str(dt.date.today())
+    batch_name = str(dt.date.today())+"_resampling"
     log = []
     reproducability = True
 
@@ -128,36 +127,36 @@ if __name__ == "__main__":
 
     cols = ["Nazwa", "Parametry", "Accuracy [%]", "F1 Score"]
     result_dataframe = pd.DataFrame(columns=cols)
-    # for experiment in experiments:
-    #     model = experiment["model"]
-    #     print(sum(p.numel() for p in model.parameters() if p.requires_grad))
-    #     name_full = experiment["name_full"]
-    #     try:
-    #         criterion = experiment["criterion"]
-    #         optimizer = experiment["optimizer"](model.parameters())
-    #         scheduler = experiment["scheduler"](optimizer)
-    #         manager = Manager(name_full, model, dataset, criterion, optimizer,
-    #                       VAE=experiment["manager"]["VAE"],
-    #                       full=experiment["manager"]["full"],
-    #                       ortho=experiment["manager"]["ortho"],
-    #                       transforms=experiment["manager"]["transforms"],
-    #                       test_transforms=experiment["manager"]["test_transforms"],
-    #                       loader_size=experiment["manager"]["loader_size"],
-    #                       normalize=experiment["manager"]["normalize"],
-    #                       image_size=experiment["manager"]["image_size"],
-    #                       scheduler=scheduler)
-    #         manager.run(length)
-    #         result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
-    #         result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name + ".csv"), sep=';', decimal=',')
-    #     except:
-    #         log.append("failed model " + name_full)
-    #         continue
+    for experiment in experiments:
+        model = experiment["model"]
+        print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+        name_full = batch_name + experiment["name_full"]
+        try:
+            criterion = experiment["criterion"]
+            optimizer = experiment["optimizer"](model.parameters())
+            scheduler = experiment["scheduler"](optimizer)
+            manager = Manager(name_full, model, dataset, criterion, optimizer,
+                          VAE=experiment["manager"]["VAE"],
+                          full=experiment["manager"]["full"],
+                          ortho=experiment["manager"]["ortho"],
+                          transforms=experiment["manager"]["transforms"],
+                          test_transforms=experiment["manager"]["test_transforms"],
+                          loader_size=experiment["manager"]["loader_size"],
+                          normalize=experiment["manager"]["normalize"],
+                          image_size=experiment["manager"]["image_size"],
+                          scheduler=scheduler)
+            manager.run(length)
+            result_dataframe = result_dataframe.append(pd.DataFrame(manager.get_results(), columns=cols), ignore_index=True)
+            result_dataframe.to_csv(os.path.join(os.getcwd(), "results", batch_name + ".csv"), sep=';', decimal=',')
+        except:
+            log.append("failed model " + name_full)
+            continue
     if run_ODE:
         ODE_runs = [
-            (False, True, 128, "ResNet_5cls"),
-            (False, False, 128, "ResNet_4cls"),
-            (True, True, 128, "ODE_5cls"),
-            (True, False, 128, "ODE_4cls")
+            (False, True, 128, batch_name + "ResNet_5cls"),
+            (False, False, 128,  batch_name + "ResNet_4cls"),
+            (True, True, 128,  batch_name + "ODE_5cls"),
+            (True, False, 128,  batch_name + "ODE_4cls")
         ]
     else:
         ODE_runs = []

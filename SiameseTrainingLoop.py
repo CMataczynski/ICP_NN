@@ -11,7 +11,10 @@ import datetime as dt
 from torch.utils.data import Dataset
 from models.SiameseModels import SiameseNeuralODE, SiameseResNet, SiameseShallowCNN
 from utils import plot_confusion_matrix
+from torchvision.transforms import Compose
 from tqdm import tqdm
+from scipy import interpolate
+import random
 
 class RunningAverageMeter(object):
     """Computes and stores the average and current value"""
@@ -232,8 +235,7 @@ class Initial_dataset_loader(Dataset):
         data_icp = self.whole_set['data_icp'][idx]
         data_abp = self.whole_set['data_abp'][idx]
         if self.transforms is not None:
-            data_icp = self.transforms(data_icp)
-            data_abp = self.transforms(data_abp)
+            data_icp, data_abp = self.transforms((data_icp, data_abp))
         if 'id' in self.whole_set:
             label = self.whole_set['id'][idx].clone().detach()
 
@@ -242,6 +244,165 @@ class Initial_dataset_loader(Dataset):
             "data_abp": data_abp,
             "label": label
         }
+
+
+class resampling_dataset_loader(Dataset):
+    def __init__(self, dataset_folder, transforms=None, full=False, normalize=True):
+        padding_minimum = 180
+        dataframes = []
+        labels = []
+        add = False
+        for file in files(dataset_folder):
+            add = True
+            prefix = file.split("_")[0]
+            if "T" in prefix:
+                labels.append(int(prefix[1]) - 1)
+            else:
+                add = full and add
+                if add:
+                    labels.append(4)
+            if add:
+                dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
+        tensors = []
+        tensors_abp = []
+        for df in dataframes:
+            data_icp = df.iloc[:, 1:].values[:, 0]
+            data_abp = df.iloc[:, 1:].values[:, 1]
+            interp_icp = interpolate.interp1d(np.arange(0, len(data_icp), 1), data_icp,
+                                            kind="cubic")
+            interp_abp = interpolate.interp1d(np.arange(0, len(data_abp), 1), data_abp,
+                                            kind="cubic")
+
+            new_t = np.linspace(0, len(data_icp)-1, padding_minimum)
+            data_icp = interp_icp(new_t)
+            data_abp = interp_abp(new_t)
+
+            if normalize:
+                data_icp = data_icp - np.min(data_icp)
+                data_icp = data_icp / np.max(data_icp)
+                data_abp = data_abp - np.min(data_abp)
+                if np.max(data_abp) != 0:
+                    data_abp = data_abp / np.max(data_abp)
+            tensors.append(torch.tensor(data_icp, dtype=torch.float))
+            tensors_abp.append(torch.tensor(data_abp, dtype=torch.float))
+        self.whole_set = {
+            'data_icp': tensors,
+            'data_abp': tensors_abp,
+            'id': torch.tensor(labels, dtype=torch.long).view(-1)
+        }
+        self.transforms = transforms
+        self.length = len(self.whole_set['id'])
+
+    def get_class_weights(self):
+        ids = self.whole_set["id"].numpy()
+        unique, counts = np.unique(ids, return_counts=True)
+        counts = 1 - (counts / len(ids)) + (1 / len(unique))
+        return torch.tensor(counts)
+
+    def get_dataset(self):
+        return self.whole_set
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        label = None
+        data_icp = self.whole_set['data_icp'][idx]
+        data_abp = self.whole_set['data_abp'][idx]
+        if self.transforms is not None:
+            data_icp, data_abp = self.transforms((data_icp, data_abp))
+        if 'id' in self.whole_set:
+            label = self.whole_set['id'][idx].clone().detach()
+
+        return {
+            "data_icp": data_icp,
+            "data_abp": data_abp,
+            "label": label
+        }
+
+class ShortenOrElongateTransform:
+    def __init__(self, min_length=16, max_length=180, probability=0.5, max_multiplier=2, kind="cubic",
+                 window_min=16, window_max=-1):
+        self.min_length = min_length
+        self.max_length = max_length
+        self.max_multiplier = max_multiplier
+        self.probability = probability
+        self.kind = kind
+        if window_max >= max_length or window_max < 0:
+            self.window_max = max_length
+        else:
+            self.window_max = window_max
+
+        self.window_min = window_min
+
+    def __call__(self, xinput):
+        x, x1 = xinput
+        np_x = np.trim_zeros(x.numpy())
+        np_x1 = np.trim_zeros(x1.numpy())
+        length = max(len(np_x), len(np_x1))
+        elongate_available = False
+        shorten_available = False
+        window_length = min(length, random.randint(self.window_min, self.window_max))
+        if window_length < self.window_min:
+            return x, x1
+        window_start = random.randint(0, length-window_length)
+        prob_elongate = 0
+        prob_shorten = 0
+        multiplier = random.randint(2, self.max_multiplier)
+        shorten_length = window_length//multiplier
+        elongate_length = window_length*multiplier - window_length
+        if length - shorten_length > self.min_length:
+            shorten_available = True
+            prob_shorten = self.probability/2
+        if elongate_length + length < self.max_length:
+            elongate_available = True
+            if shorten_available:
+                prob_elongate = self.probability/2
+            else:
+                prob_elongate = self.probability
+        else:
+            if shorten_available:
+                prob_shorten = self.probability
+
+        roll = random.random()
+        try:
+            if roll <= prob_shorten and shorten_available:
+                rest = random.randint(0, multiplier-1)
+                window = np_x[window_start:window_start + window_length]
+                return_val = np.array([i for num, i in enumerate(window) if num % multiplier == rest])
+
+                window1 = np_x1[window_start:window_start + window_length]
+                return_val1 = np.array([i for num, i in enumerate(window1) if num % multiplier == rest])
+
+                return_val = np.append(np_x[:window_start], np.append(return_val, np_x[window_start+window_length:]))
+                return_val1 = np.append(np_x1[:window_start], np.append(return_val1, np_x1[window_start+window_length:]))
+            elif roll <= prob_elongate+prob_shorten and elongate_available:
+                window = np_x[window_start:window_start + window_length]
+                interp_func = interpolate.interp1d(np.arange(0, len(window), 1), window, kind=self.kind)
+                xnew = np.arange(0, len(window) - 1, 1 / multiplier)
+                return_val = np.array(interp_func(xnew))
+                return_val = np.append(np_x[:window_start], np.append(return_val, np_x[window_start+window_length:]))
+                window1 = np_x1[window_start:window_start + window_length]
+                interp_func1 = interpolate.interp1d(np.arange(0, len(window1), 1), window1, kind=self.kind)
+                xnew1 = np.arange(0, len(window1) - 1, 1 / multiplier)
+                return_val1 = np.array(interp_func1(xnew1))
+                return_val1 = np.append(np_x1[:window_start], np.append(return_val1, np_x1[window_start+window_length:]))
+            else:
+                return_val = np_x
+                return_val1 = np_x1
+        except:
+            return_val = np_x
+            return_val1 = np_x1
+
+        ret_shape = np.zeros(self.max_length)
+        ret_shape[-len(return_val):] = return_val
+        return_val = torch.tensor(ret_shape, dtype=torch.float)
+        ret_shape1 = np.zeros(self.max_length)
+        ret_shape1[-len(return_val1):] = return_val1
+        return_val1 = torch.tensor(ret_shape1, dtype=torch.float)
+        return (return_val, return_val1)
 
 
 def trainODE(experiment_name, dataset_loaders
@@ -272,7 +433,7 @@ def trainODE(experiment_name, dataset_loaders
 
     lr_fn = learning_rate_with_decay(lr,
          batch_size, batch_denom=batch_size, batches_per_epoch=batches_per_epoch,
-         boundary_epochs=[60, 100, 140],decay_rates=[1, 0.1, 0.01, 0.001]
+         boundary_epochs=[40, 60, 80],decay_rates=[1, 0.1, 0.01, 0.001]
          )
 
     optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
@@ -295,8 +456,8 @@ def trainODE(experiment_name, dataset_loaders
         x = dct["data_icp"]
         x_abp = dct["data_abp"]
         y = dct["label"]
-        x = x.to(device)
-        x_abp = x_abp.to(device)
+        x = x.float().to(device)
+        x_abp = x_abp.float().to(device)
         y = y.to(device)
         # x = x.unsqueeze(1)
         logits = model(x, x_abp)
@@ -370,12 +531,32 @@ if __name__ == "__main__":
         "best_f1": []
     })
     train_4cls = Initial_dataset_loader(train_dataset_path, full=False,
-                                                normalize=True)
+                                        transforms= Compose([
+                                            ShortenOrElongateTransform(min_length=32,
+                                                                       max_length=180,
+                                                                       probability=0.7,
+                                                                       max_multiplier=3)
+                                        ]),
+                                        normalize=True)
     test_4cls = Initial_dataset_loader(test_dataset_path, full=False, normalize=True)
+
+    res_train_4cls = resampling_dataset_loader(train_dataset_path, full=False,
+                                        normalize=True)
+    res_test_4cls = resampling_dataset_loader(test_dataset_path, full=False, normalize=True)
     print("Loaded 4 cls")
     train_5cls = Initial_dataset_loader(train_dataset_path, full=True,
-                                                normalize=True)
+                                        transforms= Compose([
+                                            ShortenOrElongateTransform(min_length=32,
+                                                                       max_length=180,
+                                                                       probability=0.7,
+                                                                       max_multiplier=3)
+                                        ]),
+                                        normalize=True)
     test_5cls = Initial_dataset_loader(test_dataset_path, full=True, normalize=True)
+
+    res_train_5cls = resampling_dataset_loader(train_dataset_path, full=True,
+                                        normalize=True)
+    res_test_5cls = resampling_dataset_loader(test_dataset_path, full=True, normalize=True)
     print("Loaded 5 cls")
     prev_experiments = [
     {
@@ -404,7 +585,7 @@ if __name__ == "__main__":
             4: "AE"
         }
     },{
-        "name": "SiameseResNet_4cls",
+        "name": "Agumented_SiameseResNet_4cls",
         "is_odenet": 1,
         "lr": 0.1,
         "train_dataset": train_4cls,
@@ -415,41 +596,94 @@ if __name__ == "__main__":
             2: "T3",
             3: "T4"
         }
-    },{
-        "name": "SiameseResNet_5cls",
-        "is_odenet": 1,
-        "lr": 0.1,
-        "train_dataset": train_5cls,
-        "test_dataset": test_5cls,
-        "labels": {
-            0: "T1",
-            1: "T2",
-            2: "T3",
-            3: "T4",
-            4: "AE"
-        }
     }
     ]
     experiments = [
+        # {
+        #     "name": "Agumented_SiameseResNet_5cls",
+        #     "is_odenet": 1,
+        #     "lr": 0.1,
+        #     "train_dataset": train_5cls,
+        #     "test_dataset": test_5cls,
+        #     "labels": {
+        #         0: "T1",
+        #         1: "T2",
+        #         2: "T3",
+        #         3: "T4",
+        #         4: "AE"
+        #     }
+        # },{
+        #     "name": "Agumented_SiameseODE_4cls",
+        #     "is_odenet": 0,
+        #     "lr": 0.1,
+        #     "train_dataset": train_4cls,
+        #     "test_dataset": test_4cls,
+        #     "labels": {
+        #         0: "T1",
+        #         1: "T2",
+        #         2: "T3",
+        #         3: "T4"
+        #     }
+        # },
+        # {
+        #     "name": "Agumented_SiameseODE_5cls",
+        #     "is_odenet": 0,
+        #     "lr": 0.1,
+        #     "train_dataset": train_5cls,
+        #     "test_dataset": test_5cls,
+        #     "labels": {
+        #         0: "T1",
+        #         1: "T2",
+        #         2: "T3",
+        #         3: "T4",
+        #         4: "AE"
+        #     }
+        # },
+        # {
+        #     "name": "Resampling_SiameseResNet_4cls",
+        #     "is_odenet": 1,
+        #     "lr": 0.1,
+        #     "train_dataset": res_train_4cls,
+        #     "test_dataset": res_test_4cls,
+        #     "labels": {
+        #         0: "T1",
+        #         1: "T2",
+        #         2: "T3",
+        #         3: "T4"
+        #     }
+        # },{
+        #     "name": "Resampling_SiameseResNet_5cls",
+        #     "is_odenet": 1,
+        #     "lr": 0.1,
+        #     "train_dataset": res_train_5cls,
+        #     "test_dataset": res_test_5cls,
+        #     "labels": {
+        #         0: "T1",
+        #         1: "T2",
+        #         2: "T3",
+        #         3: "T4",
+        #         4: "AE"
+        #     }
+        # },
+        # {
+        #     "name": "Resampling_SiameseODE_4cls",
+        #     "is_odenet": 0,
+        #     "lr": 0.1,
+        #     "train_dataset": res_train_4cls,
+        #     "test_dataset": res_test_4cls,
+        #     "labels": {
+        #         0: "T1",
+        #         1: "T2",
+        #         2: "T3",
+        #         3: "T4"
+        #     }
+        # },
         {
-            "name": "SiameseODE_4cls",
+            "name": "Resampling_SiameseODE_5cls",
             "is_odenet": 0,
             "lr": 0.1,
-            "train_dataset": train_4cls,
-            "test_dataset": test_4cls,
-            "labels": {
-                0: "T1",
-                1: "T2",
-                2: "T3",
-                3: "T4"
-            }
-        },
-        {
-            "name": "SiameseODE_5cls",
-            "is_odenet": 0,
-            "lr": 0.1,
-            "train_dataset": train_5cls,
-            "test_dataset": test_5cls,
+            "train_dataset": res_train_5cls,
+            "test_dataset": res_test_5cls,
             "labels": {
                 0: "T1",
                 1: "T2",
@@ -469,7 +703,7 @@ if __name__ == "__main__":
                                                                    batch_size=batch_size,
                                                                    shuffle=True)),
                                      experiment["labels"],
-                                     training_length=150,
+                                     training_length=100,
                                      type=experiment["is_odenet"],
                                      batch_size=batch_size,
                                      lr=experiment["lr"])

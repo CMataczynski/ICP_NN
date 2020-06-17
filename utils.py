@@ -259,3 +259,68 @@ class TransformToEmd:
         bckg = np.zeros(self.length)
         bckg[:len(mode)] = mode
         return bckg
+
+
+class resampling_dataset_loader(Dataset):
+    def __init__(self, dataset_folder, transforms=None, full=False, normalize=True):
+        padding_minimum = 180
+        dataframes = []
+        labels = []
+        add = False
+        for file in files(dataset_folder):
+            add = True
+            prefix = file.split("_")[0]
+            if "T" in prefix:
+                labels.append(int(prefix[1]) - 1)
+            else:
+                add = full and add
+                if add:
+                    labels.append(4)
+            if add:
+                dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
+        tensors = []
+
+        for df in dataframes:
+            data = df.iloc[:, 1:].values[:, 0]
+            interp = interpolate.interp1d(np.arange(0, len(data), 1), data,
+                                            kind="cubic")
+            new_t = np.linspace(0, len(data)-1, padding_minimum)
+            data = interp(new_t)
+
+            if normalize:
+                data = data - np.min(data)
+                data = data / np.max(data)
+            tensors.append(torch.tensor(data, dtype=torch.double))
+        self.whole_set = {
+            'data': tensors,
+            'id': torch.tensor(labels, dtype=torch.long).view(-1)
+        }
+        self.transforms = transforms
+        self.length = len(self.whole_set['id'])
+
+    def get_class_weights(self):
+        ids = self.whole_set["id"].numpy()
+        unique, counts = np.unique(ids, return_counts=True)
+        counts = 1 - (counts / len(ids)) + (1 / len(unique))
+        return torch.tensor(counts)
+
+    def get_dataset(self):
+        return self.whole_set
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        label = None
+        data = self.whole_set['data'][idx]
+        if self.transforms is not None:
+            data = self.transforms(data)
+        if 'id' in self.whole_set:
+            label = self.whole_set['id'][idx].clone().detach()
+
+        return {
+            "image": data,
+            "label": label
+        }
