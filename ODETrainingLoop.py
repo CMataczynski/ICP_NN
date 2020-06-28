@@ -243,8 +243,10 @@ def trainODE(is_odenet=True, full=True, batch_size=256):
 
     if full:
         name = name + "_5cls"
+        no_classes = 5
     else:
         name = name + "_4cls"
+        no_classes = 4
 
     max = 0
     for subdir in os.listdir(os.path.join(os.getcwd(), "experiments")):
@@ -262,7 +264,7 @@ def trainODE(is_odenet=True, full=True, batch_size=256):
     ]
 
     feature_layers = [ODEBlock(ODEfunc(64))] if is_odenet else [ResBlock(64, 64) for _ in range(6)]
-    fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(1), Flatten(), nn.Dropout(0.6), nn.Linear(64, 5)]
+    fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(1), Flatten(), nn.Dropout(0.6), nn.Linear(64, no_classes)]
 
     model = nn.Sequential(*downsampling_layers, *feature_layers, *fc_layers).to(device)
 
