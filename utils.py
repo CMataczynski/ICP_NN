@@ -11,7 +11,7 @@ import matplotlib
 from scipy import interpolate
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
-from PyEMD import EMD
+# from PyEMD import EMD
 
 
 def transform_fourier(y):
@@ -249,17 +249,17 @@ class PlotToImage:
         return torch.tensor(background).unsqueeze(0)
 
 
-class TransformToEmd:
-    def __init__(self, length=180):
-        self.length=length
-
-    def __call__(self, x, y):
-        imf = EMD().emd(y, x)
-        mode = imf[0]
-        bckg = np.zeros(self.length)
-        bckg[:len(mode)] = mode
-        return bckg
-
+#class TransformToEmd:
+#    def __init__(self, length=180):
+#        self.length=length
+#
+#    def __call__(self, x, y):
+#        imf = EMD().emd(y, x)
+#        mode = imf[0]
+#        bckg = np.zeros(self.length)
+#        bckg[:len(mode)] = mode
+#        return bckg
+#
 
 class resampling_dataset_loader(Dataset):
     def __init__(self, dataset_folder, transforms=None, full=False, normalize=True):
