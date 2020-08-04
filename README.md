@@ -89,3 +89,7 @@ And go to your browser typing (by default)
 localhost:6006
 ```
 To access the tensorboard. You can look up models there as well as their results or confusion matrices.
+
+## Visualization
+To visualize the classification and dataset analysis results, go to Visualisation.ipynb notebook, and run first, second and two last cells (one with loading the data and other with interactive displays). You will have to provide path to load the data from pickle, which can be found here:
+https://drive.google.com/file/d/1Zfo3VuIwvpI9TCNbNxTbHMVZslMh1nls/view?usp=sharing
