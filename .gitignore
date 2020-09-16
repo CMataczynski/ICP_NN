@@ -7,3 +7,4 @@ experiments/
 results/
 .ipynb_checkpoints/
 *.bat
+old_experiments/

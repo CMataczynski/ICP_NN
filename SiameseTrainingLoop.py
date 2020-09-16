@@ -10,7 +10,7 @@ import numpy as np
 import datetime as dt
 from torch.utils.data import Dataset
 from models.SiameseModels import SiameseNeuralODE, SiameseResNet, SiameseShallowCNN
-from utils import plot_confusion_matrix
+from utils import plot_confusion_matrix, resampling_dataset_loader
 from torchvision.transforms import Compose
 from tqdm import tqdm
 from scipy import interpolate
@@ -68,22 +68,31 @@ def one_hot(x, K):
     return np.array(x[:, None] == np.arange(K)[None, :], dtype=int)
 
 
-def accuracy_and_f1(model, dataset_loader,no_classes , device="cpu"):
+def accuracy_and_f1(model, dataset_loader,no_classes , device="cpu", multilabel=False):
     total_correct = 0
     labs = []
     preds = []
+    total = 0
     for data in dataset_loader:
-        x = data['data_icp'].to(device)
-        x_abp = data['data_abp'].to(device)
-        y = one_hot(np.array(data['label'].numpy()), no_classes)
+        x = data['data_icp'].float().to(device)
+        x_abp = data['data_abp'].float().to(device)
+        if multilabel:
+            y = data['label'].numpy()
+        else:
+            y = one_hot(np.array(data['label'].numpy()), 5)
         target_class = np.argmax(y, axis=1)
-        predicted_class = np.argmax(model(x, x_abp).cpu().detach().numpy(), axis=1)
-        labs += data["label"].tolist()
+        if multilabel:
+            sig = nn.Sigmoid()
+            predicted = sig(model(x).cpu().detach()).numpy()
+            predicted_class = np.where(predicted >= 0.5, np.ones(predicted.shape), np.zeros(predicted.shape))
+        else:
+            predicted_class = np.argmax(model(x, x_abp).cpu().detach().numpy(), axis=1)
+        labs += data['label'].tolist()
         preds += predicted_class.tolist()
         total_correct += np.sum(predicted_class == target_class)
+        total += np.sum(target_class)
     f1 = f1_score(labs, preds, average='weighted')
-    return total_correct / len(dataset_loader.dataset), f1
-
+    return total_correct / total, f1
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -246,81 +255,81 @@ class Initial_dataset_loader(Dataset):
         }
 
 
-class resampling_dataset_loader(Dataset):
-    def __init__(self, dataset_folder, transforms=None, full=False, normalize=True):
-        padding_minimum = 180
-        dataframes = []
-        labels = []
-        add = False
-        for file in files(dataset_folder):
-            add = True
-            prefix = file.split("_")[0]
-            if "T" in prefix:
-                labels.append(int(prefix[1]) - 1)
-            else:
-                add = full and add
-                if add:
-                    labels.append(4)
-            if add:
-                dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
-        tensors = []
-        tensors_abp = []
-        for df in dataframes:
-            data_icp = df.iloc[:, 1:].values[:, 0]
-            data_abp = df.iloc[:, 1:].values[:, 1]
-            interp_icp = interpolate.interp1d(np.arange(0, len(data_icp), 1), data_icp,
-                                            kind="cubic")
-            interp_abp = interpolate.interp1d(np.arange(0, len(data_abp), 1), data_abp,
-                                            kind="cubic")
-
-            new_t = np.linspace(0, len(data_icp)-1, padding_minimum)
-            data_icp = interp_icp(new_t)
-            data_abp = interp_abp(new_t)
-
-            if normalize:
-                data_icp = data_icp - np.min(data_icp)
-                data_icp = data_icp / np.max(data_icp)
-                data_abp = data_abp - np.min(data_abp)
-                if np.max(data_abp) != 0:
-                    data_abp = data_abp / np.max(data_abp)
-            tensors.append(torch.tensor(data_icp, dtype=torch.float))
-            tensors_abp.append(torch.tensor(data_abp, dtype=torch.float))
-        self.whole_set = {
-            'data_icp': tensors,
-            'data_abp': tensors_abp,
-            'id': torch.tensor(labels, dtype=torch.long).view(-1)
-        }
-        self.transforms = transforms
-        self.length = len(self.whole_set['id'])
-
-    def get_class_weights(self):
-        ids = self.whole_set["id"].numpy()
-        unique, counts = np.unique(ids, return_counts=True)
-        counts = 1 - (counts / len(ids)) + (1 / len(unique))
-        return torch.tensor(counts)
-
-    def get_dataset(self):
-        return self.whole_set
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        label = None
-        data_icp = self.whole_set['data_icp'][idx]
-        data_abp = self.whole_set['data_abp'][idx]
-        if self.transforms is not None:
-            data_icp, data_abp = self.transforms((data_icp, data_abp))
-        if 'id' in self.whole_set:
-            label = self.whole_set['id'][idx].clone().detach()
-
-        return {
-            "data_icp": data_icp,
-            "data_abp": data_abp,
-            "label": label
-        }
+# class resampling_dataset_loader(Dataset):
+#     def __init__(self, dataset_folder, transforms=None, full=False, normalize=True):
+#         padding_minimum = 180
+#         dataframes = []
+#         labels = []
+#         add = False
+#         for file in files(dataset_folder):
+#             add = True
+#             prefix = file.split("_")[0]
+#             if "T" in prefix:
+#                 labels.append(int(prefix[1]) - 1)
+#             else:
+#                 add = full and add
+#                 if add:
+#                     labels.append(4)
+#             if add:
+#                 dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
+#         tensors = []
+#         tensors_abp = []
+#         for df in dataframes:
+#             data_icp = df.iloc[:, 1:].values[:, 0]
+#             data_abp = df.iloc[:, 1:].values[:, 1]
+#             interp_icp = interpolate.interp1d(np.arange(0, len(data_icp), 1), data_icp,
+#                                             kind="cubic")
+#             interp_abp = interpolate.interp1d(np.arange(0, len(data_abp), 1), data_abp,
+#                                             kind="cubic")
+#
+#             new_t = np.linspace(0, len(data_icp)-1, padding_minimum)
+#             data_icp = interp_icp(new_t)
+#             data_abp = interp_abp(new_t)
+#
+#             if normalize:
+#                 data_icp = data_icp - np.min(data_icp)
+#                 data_icp = data_icp / np.max(data_icp)
+#                 data_abp = data_abp - np.min(data_abp)
+#                 if np.max(data_abp) != 0:
+#                     data_abp = data_abp / np.max(data_abp)
+#             tensors.append(torch.tensor(data_icp, dtype=torch.float))
+#             tensors_abp.append(torch.tensor(data_abp, dtype=torch.float))
+#         self.whole_set = {
+#             'data_icp': tensors,
+#             'data_abp': tensors_abp,
+#             'id': torch.tensor(labels, dtype=torch.long).view(-1)
+#         }
+#         self.transforms = transforms
+#         self.length = len(self.whole_set['id'])
+#
+#     def get_class_weights(self):
+#         ids = self.whole_set["id"].numpy()
+#         unique, counts = np.unique(ids, return_counts=True)
+#         counts = 1 - (counts / len(ids)) + (1 / len(unique))
+#         return torch.tensor(counts)
+#
+#     def get_dataset(self):
+#         return self.whole_set
+#
+#     def __len__(self):
+#         return self.length
+#
+#     def __getitem__(self, idx):
+#         if torch.is_tensor(idx):
+#             idx = idx.tolist()
+#         label = None
+#         data_icp = self.whole_set['data_icp'][idx]
+#         data_abp = self.whole_set['data_abp'][idx]
+#         if self.transforms is not None:
+#             data_icp, data_abp = self.transforms((data_icp, data_abp))
+#         if 'id' in self.whole_set:
+#             label = self.whole_set['id'][idx].clone().detach()
+#
+#         return {
+#             "data_icp": data_icp,
+#             "data_abp": data_abp,
+#             "label": label
+#         }
 
 class ShortenOrElongateTransform:
     def __init__(self, min_length=16, max_length=180, probability=0.5, max_multiplier=2, kind="cubic",
@@ -404,10 +413,14 @@ class ShortenOrElongateTransform:
         return_val1 = torch.tensor(ret_shape1, dtype=torch.float)
         return (return_val, return_val1)
 
+def one_hot_embedding(labels, num_classes):
+    y = torch.eye(num_classes)
+    return y[labels]
+
 
 def trainODE(experiment_name, dataset_loaders
             ,class_dict, training_length=150,
-            type=0, batch_size=256, lr=0.1):
+            type=0, batch_size=256, lr=0.1, sigmoid=False, multilabel=False):
     '''
     experiment_name: string with name of the experiments
     dataset_loaders: (training loader, testing loader) with type of DataLoader
@@ -426,7 +439,10 @@ def trainODE(experiment_name, dataset_loaders
     else:
         model = SiameseShallowCNN(no_classes).to(device)
 
-    criterion = nn.CrossEntropyLoss().to(device)
+    if sigmoid:
+        criterion = nn.BCELoss().to(device)
+    else:
+        criterion = nn.CrossEntropyLoss().to(device)
     train_loader, test_loader = dataset_loaders
     data_gen = inf_generator(train_loader)
     batches_per_epoch = len(train_loader)
@@ -458,9 +474,17 @@ def trainODE(experiment_name, dataset_loaders
         y = dct["label"]
         x = x.float().to(device)
         x_abp = x_abp.float().to(device)
-        y = y.to(device)
+
         # x = x.unsqueeze(1)
         logits = model(x, x_abp)
+        if sigmoid:
+            sig = nn.Sigmoid()
+            logits = sig(logits)
+
+        if sigmoid and not multilabel:
+            y = one_hot_embedding(y,no_classes).to(device)
+        else:
+            y = y.to(device)
         loss = criterion(logits, y)
 
         if type == 0:
@@ -486,7 +510,7 @@ def trainODE(experiment_name, dataset_loaders
         if itr % batches_per_epoch == 0:
             with torch.no_grad():
                 model.eval()
-                val_acc, f1 = accuracy_and_f1(model, test_loader, no_classes, device=device)
+                val_acc, f1 = accuracy_and_f1(model, test_loader, no_classes, device=device, multilabel=multilabel)
                 if f1 > best_f1:
                     torch.save({'state_dict': model.state_dict()},
                                 os.path.join(os.getcwd(),"experiments", name,
@@ -499,23 +523,24 @@ def trainODE(experiment_name, dataset_loaders
                     writer.add_scalar("NFE-F", f_nfe_meter.val, itr//batches_per_epoch)
                     writer.add_scalar("NFE-B", b_nfe_meter.val, itr//batches_per_epoch)
 
-    labs = []
-    preds = []
-    for data in test_loader:
-        x = data['data_icp'].to(device)
-        x_abp = data['data_abp'].to(device)
-        # x = x.unsqueeze(1)
-        y = data["label"].tolist()
-        labs += y
-        outputs = model(x, x_abp)
-        predicted = torch.max(outputs, 1).indices
-        preds += predicted.tolist()
+    if not multilabel:
+        labs = []
+        preds = []
+        for data in test_loader:
+            x = data['data_icp'].float().to(device)
+            x_abp = data['data_abp'].float().to(device)
+            # x = x.unsqueeze(1)
+            y = data["label"].tolist()
+            labs += y
+            outputs = model(x, x_abp)
+            predicted = torch.max(outputs, 1).indices
+            preds += predicted.tolist()
 
-    labs = [class_dict[a] for a in labs]
-    preds = [class_dict[a] for a in preds]
-    writer.add_figure(name + " - Confusion Matrix",
-                      plot_confusion_matrix(labs, preds,
-                      [class_dict[key] for key in class_dict.keys()]))
+        labs = [class_dict[a] for a in labs]
+        preds = [class_dict[a] for a in preds]
+        writer.add_figure(name + " - Confusion Matrix",
+                          plot_confusion_matrix(labs, preds,
+                          [class_dict[key] for key in class_dict.keys()]))
     writer.close()
     return [best_acc, best_f1]
 
@@ -530,74 +555,80 @@ if __name__ == "__main__":
         "best_acc": [],
         "best_f1": []
     })
-    train_4cls = Initial_dataset_loader(train_dataset_path, full=False,
-                                        transforms= Compose([
-                                            ShortenOrElongateTransform(min_length=32,
-                                                                       max_length=180,
-                                                                       probability=0.7,
-                                                                       max_multiplier=3)
-                                        ]),
-                                        normalize=True)
-    test_4cls = Initial_dataset_loader(test_dataset_path, full=False, normalize=True)
-
-    res_train_4cls = resampling_dataset_loader(train_dataset_path, full=False,
-                                        normalize=True)
-    res_test_4cls = resampling_dataset_loader(test_dataset_path, full=False, normalize=True)
+    # train_4cls = Initial_dataset_loader(train_dataset_path, full=False,
+    #                                     transforms= Compose([
+    #                                         ShortenOrElongateTransform(min_length=32,
+    #                                                                    max_length=180,
+    #                                                                    probability=0.7,
+    #                                                                    max_multiplier=3)
+    #                                     ]),
+    #                                     normalize=True)
+    # test_4cls = Initial_dataset_loader(test_dataset_path, full=False, normalize=True)
+    #
+    # res_train_4cls = resampling_dataset_loader(train_dataset_path, full=False,
+    #                                     normalize=True)
+    # res_test_4cls = resampling_dataset_loader(test_dataset_path, full=False, normalize=True)
     print("Loaded 4 cls")
-    train_5cls = Initial_dataset_loader(train_dataset_path, full=True,
-                                        transforms= Compose([
-                                            ShortenOrElongateTransform(min_length=32,
-                                                                       max_length=180,
-                                                                       probability=0.7,
-                                                                       max_multiplier=3)
-                                        ]),
-                                        normalize=True)
-    test_5cls = Initial_dataset_loader(test_dataset_path, full=True, normalize=True)
-
+    # train_5cls = Initial_dataset_loader(train_dataset_path, full=True,
+    #                                     transforms= Compose([
+    #                                         ShortenOrElongateTransform(min_length=32,
+    #                                                                    max_length=180,
+    #                                                                    probability=0.7,
+    #                                                                    max_multiplier=3)
+    #                                     ]),
+    #                                     normalize=True)
+    # test_5cls = Initial_dataset_loader(test_dataset_path, full=True, normalize=True)
+    ml_path_train = os.path.join(os.getcwd(), "datasets", "train_corrections.csv")
+    ml_path_test = os.path.join(os.getcwd(), "datasets", "test_corrections.csv")
+    ml_mapping_path = os.path.join(os.getcwd(), "datasets", "full_siamese_dataset_to_full_extended_dataset_mapping.csv")
     res_train_5cls = resampling_dataset_loader(train_dataset_path, full=True,
-                                        normalize=True)
-    res_test_5cls = resampling_dataset_loader(test_dataset_path, full=True, normalize=True)
+                                        normalize=True, siamese=True,
+                                        artificial_ae_examples=2000, multilabel_labels_path = ml_path_train,
+                                        multilabel_mapping_path = ml_mapping_path)
+    res_test_5cls = resampling_dataset_loader(test_dataset_path, full=True, normalize=True,
+                                        siamese=True, multilabel_labels_path = ml_path_test,
+                                        multilabel_mapping_path = ml_mapping_path)
     print("Loaded 5 cls")
-    prev_experiments = [
-    {
-        "name": "SiameseCNN_4cls",
-        "is_odenet": 2,
-        "lr": 0.1,
-        "train_dataset": train_4cls,
-        "test_dataset": test_4cls,
-        "labels": {
-            0: "T1",
-            1: "T2",
-            2: "T3",
-            3: "T4"
-        }
-    },{
-        "name": "SiameseCNN_5cls",
-        "is_odenet": 2,
-        "lr": 0.1,
-        "train_dataset": train_5cls,
-        "test_dataset": test_5cls,
-        "labels": {
-            0: "T1",
-            1: "T2",
-            2: "T3",
-            3: "T4",
-            4: "AE"
-        }
-    },{
-        "name": "Agumented_SiameseResNet_4cls",
-        "is_odenet": 1,
-        "lr": 0.1,
-        "train_dataset": train_4cls,
-        "test_dataset": test_4cls,
-        "labels": {
-            0: "T1",
-            1: "T2",
-            2: "T3",
-            3: "T4"
-        }
-    }
-    ]
+    # prev_experiments = [
+    # {
+    #     "name": "SiameseCNN_4cls",
+    #     "is_odenet": 2,
+    #     "lr": 0.1,
+    #     "train_dataset": train_4cls,
+    #     "test_dataset": test_4cls,
+    #     "labels": {
+    #         0: "T1",
+    #         1: "T2",
+    #         2: "T3",
+    #         3: "T4"
+    #     }
+    # },{
+    #     "name": "SiameseCNN_5cls",
+    #     "is_odenet": 2,
+    #     "lr": 0.1,
+    #     "train_dataset": train_5cls,
+    #     "test_dataset": test_5cls,
+    #     "labels": {
+    #         0: "T1",
+    #         1: "T2",
+    #         2: "T3",
+    #         3: "T4",
+    #         4: "AE"
+    #     }
+    # },{
+    #     "name": "Agumented_SiameseResNet_4cls",
+    #     "is_odenet": 1,
+    #     "lr": 0.1,
+    #     "train_dataset": train_4cls,
+    #     "test_dataset": test_4cls,
+    #     "labels": {
+    #         0: "T1",
+    #         1: "T2",
+    #         2: "T3",
+    #         3: "T4"
+    #     }
+    # }
+    # ]
     experiments = [
         # {
         #     "name": "Agumented_SiameseResNet_5cls",
@@ -651,20 +682,21 @@ if __name__ == "__main__":
         #         2: "T3",
         #         3: "T4"
         #     }
-        # },{
-        #     "name": "Resampling_SiameseResNet_5cls",
-        #     "is_odenet": 1,
-        #     "lr": 0.1,
-        #     "train_dataset": res_train_5cls,
-        #     "test_dataset": res_test_5cls,
-        #     "labels": {
-        #         0: "T1",
-        #         1: "T2",
-        #         2: "T3",
-        #         3: "T4",
-        #         4: "AE"
-        #     }
         # },
+        {
+            "name": "Resampling_SiameseResNet_5cls_artificial",
+            "is_odenet": 1,
+            "lr": 0.1,
+            "train_dataset": res_train_5cls,
+            "test_dataset": res_test_5cls,
+            "labels": {
+                0: "T1",
+                1: "T2",
+                2: "T3",
+                3: "T4",
+                4: "AE"
+            }
+        },
         # {
         #     "name": "Resampling_SiameseODE_4cls",
         #     "is_odenet": 0,
@@ -679,7 +711,7 @@ if __name__ == "__main__":
         #     }
         # },
         {
-            "name": "Resampling_SiameseODE_5cls",
+            "name": "Resampling_SiameseODE_5cls_artificial",
             "is_odenet": 0,
             "lr": 0.1,
             "train_dataset": res_train_5cls,
