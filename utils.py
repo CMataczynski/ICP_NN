@@ -6,12 +6,52 @@ import torch
 from torch.utils.data import Dataset
 from textwrap import wrap
 import re
+from pathlib import Path
 import itertools
 import matplotlib
+import pickle
 from scipy import interpolate
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 # from PyEMD import EMD
+
+class RunningAverageMeter(object):
+    def __init__(self, momentum=0.99):
+        self.momentum = momentum
+        self.reset()
+
+    def reset(self):
+        self.val = None
+        self.avg = 0
+
+    def update(self, val):
+        if self.val is None:
+            self.avg = val
+        else:
+            self.avg = self.avg * self.momentum + val * (1 - self.momentum)
+        self.val = val
+
+def learning_rate_with_decay(lr, batch_size, batch_denom, batches_per_epoch, boundary_epochs, decay_rates):
+    initial_learning_rate = lr * batch_size / batch_denom
+
+    boundaries = [int(batches_per_epoch * epoch) for epoch in boundary_epochs]
+    vals = [initial_learning_rate * decay for decay in decay_rates]
+
+    def learning_rate_fn(itr):
+        lt = [itr < b for b in boundaries] + [True]
+        i = np.argmax(lt)
+        return vals[i]
+
+    return learning_rate_fn
+
+
+def inf_generator(iterable):
+    iterator = iterable.__iter__()
+    while True:
+        try:
+            yield iterator.__next__()
+        except StopIteration:
+            iterator = iterable.__iter__()
 
 
 def transform_fourier(y):
@@ -263,14 +303,77 @@ class PlotToImage:
 
 class resampling_dataset_loader(Dataset):
     def __init__(self, dataset_folder, transforms=None, full=False, normalize=True,
-                    siamese=False, artificial_ae_examples=False, multilabel = False,
-                    multilabel_mapping_path = None, multilabel_labels_path = None):
+                    siamese=False, include_artificial_ae = False, artificial_ae_examples=None,
+                    multilabel = False, multilabel_mapping_path = None, multilabel_labels_path = None):
         self.siamese = siamese
         self.multilabel = multilabel
+        self.artificial_ae = include_artificial_ae
+        self.normalize = normalize
         padding_minimum = 180
-        dataframes = []
-        labels = []
 
+        self._create_classes_dict(multilabel_labels_path, multilabel_mapping_path)
+
+        dataframes, self.labels, self.labels_ml = self._get_csv_dataframes_and_labels(dataset_folder,
+                                                multilabel_labels_path, full)
+
+        self.tensors, self.tensors_abp = self._get_tensors(dataframes, padding_minimum)
+
+        if artificial_ae_examples is not None:
+            self._create_artificial_ae_examples(artificial_ae_examples)
+        else:
+            self._create_artificial_ae_examples(0)
+
+        self.set_parameters(siamese, multilabel, include_artificial_ae, transforms)
+
+
+
+    def set_parameters(self, siamese, multilabel, include_artificial_ae, transforms):
+        self.siamese = siamese
+        self.multilabel = multilabel
+        self.artificial_ae = include_artificial_ae
+
+        if siamese:
+            if multilabel:
+                labels = torch.stack(self.labels_ml)
+            else:
+                labels = torch.tensor(sekf.labels, dtype=torch.long).view(-1)
+            if include_artificial_ae:
+                tensors = torch.cat((self.tensors, self.artificial_icp))
+                tensors = torch.cat((self.tensors_abp, self.artificial_abp))
+                if multilabel:
+                    labels = torch.cat((labels, self.artificial_labels_ml))
+                else:
+                    labels = torch.cat((labels, self.artificial_labels))
+            else:
+                    tensors = torch.cat((self.tensors, self.artificial_icp))
+                    tensors = torch.cat((self.tensors_abp, self.artificial_abp))
+            self.whole_set = {
+                'data_icp': tensors,
+                'data_abp': tensors_abp,
+                'id': labels
+            }
+        else:
+            if multilabel:
+                labels = torch.stack(self.labels_ml)
+            else:
+                labels = torch.tensor(self.labels, dtype=torch.long).view(-1)
+            if include_artificial_ae:
+                tensors = torch.cat((self.tensors, self.artificial_icp))
+                if multilabel:
+                    labels = torch.cat((labels, self.artificial_labels_ml))
+                else:
+                    labels = torch.cat((labels, self.artificial_labels))
+            else:
+                    tensors = torch.cat((self.tensors, self.artificial_icp))
+            self.whole_set = {
+                'data_icp': tensors,
+                'id': labels
+            }
+        self.transforms = transforms
+        self.length = len(self.whole_set['id'])
+
+    def _create_classes_dict(self, multilabel_labels_path, multilabel_mapping_path):
+        classes_dict = [None]
         if multilabel_labels_path is not None:
             ml_labels = pd.read_csv(multilabel_labels_path)
 
@@ -288,49 +391,55 @@ class resampling_dataset_loader(Dataset):
                     pulse_name = pulse_name.values[0]
                 classes_dict[pulse_name] = (pulse_primary, pulse_secondary)
 
+        self.classes_dict = classes_dict
 
+    def _get_csv_dataframes_and_labels(self, dataset_folder, multilabel_labels_path, full):
+        dataframes = []
+        labels_ml = []
+        labels = []
         add = False
         for file in files(dataset_folder):
             add = True
             prefix = file.split("_")[0]
-            if multilabel:
-                if file in classes_dict:
-                    prim, sec = classes_dict[file]
-                    out = torch.zeros(5, dtype = torch.float)
-                    out[prim-1] = 1
-                    out[sec-1] = 1
-                    labels.append(out)
-                else:
-                    if "T" in prefix:
-                        out = torch.zeros(5, dtype=torch.float)
-                        out[int(prefix[1]) - 1] = 1
-                        labels.append(out)
-                    else:
-                        labels.append(torch.tensor([0, 0, 0, 0, 1], dtype=torch.float))
+            if file in self.classes_dict:
+                prim, sec = self.classes_dict[file]
+                out = torch.zeros(5, dtype = torch.float)
+                out[prim-1] = 1
+                out[sec-1] = 1
+                labels_ml.append(out)
             else:
-                if multilabel_labels_path is not None:
-                    if file in classes_dict:
-                        prim, sec = classes_dict[file]
-                        labels.append(prim-1)
-                        if prim - 1 == 4:
-                            add = full and add
-                    elif "T" in prefix:
-                        labels.append(int(prefix[1]) - 1)
-                    else:
+                if "T" in prefix:
+                    out = torch.zeros(5, dtype=torch.float)
+                    out[int(prefix[1]) - 1] = 1
+                    labels_ml.append(out)
+                else:
+                    labels_ml.append(torch.tensor([0, 0, 0, 0, 1], dtype=torch.float))
+
+            if multilabel_labels_path is not None:
+                if file in self.classes_dict:
+                    prim, sec = self.classes_dict[file]
+                    labels.append(prim-1)
+                    if prim - 1 == 4:
                         add = full and add
-                        if add:
-                            labels.append(4)
                 elif "T" in prefix:
                     labels.append(int(prefix[1]) - 1)
                 else:
                     add = full and add
                     if add:
                         labels.append(4)
+            elif "T" in prefix:
+                labels.append(int(prefix[1]) - 1)
+            else:
+                add = full and add
+                if add:
+                    labels.append(4)
             if add:
                 dataframes.append(pd.read_csv(os.path.join(dataset_folder, file)))
+        return dataframes, labels, labels_ml
+
+    def _get_tensors(self, dataframes, padding_minimum):
         tensors = []
-        if siamese:
-            tensors_abp = []
+        tensors_abp = []
 
         for df in dataframes:
             data = df.iloc[:, 1:].values[:, 0]
@@ -340,16 +449,16 @@ class resampling_dataset_loader(Dataset):
             new_t = np.linspace(0, len(data)-1, padding_minimum)
             data = interp(new_t)
 
-            if normalize:
+            if self.normalize:
                 data = data - np.min(data)
                 data = data / np.max(data)
 
-            if siamese:
+            if self.siamese:
                 data_abp = df.iloc[:, 1:].values[:, 1]
                 interp_abp = interpolate.interp1d(np.arange(0, len(data_abp), 1), data_abp,
                                                 kind="cubic")
                 data_abp = interp_abp(new_t)
-                if normalize:
+                if self.normalize:
                     data_abp = data_abp - np.min(data_abp)
                     if np.max(data_abp) != 0:
                         data_abp = data_abp / np.max(data_abp)
@@ -357,29 +466,7 @@ class resampling_dataset_loader(Dataset):
                 tensors_abp.append(torch.tensor(data_abp, dtype=torch.float))
 
             tensors.append(torch.tensor(data, dtype=torch.double))
-        if siamese:
-            if multilabel:
-                labels = torch.stack(labels)
-            else:
-                labels = torch.tensor(labels, dtype=torch.long).view(-1)
-            self.whole_set = {
-                'data_icp': tensors,
-                'data_abp': tensors_abp,
-                'id': labels
-            }
-        else:
-            if multilabel:
-                labels = torch.stack(labels)
-            else:
-                labels = torch.tensor(labels, dtype=torch.long).view(-1)
-            self.whole_set = {
-                'data_icp': tensors,
-                'id': labels
-            }
-        self.transforms = transforms
-        self.length = len(self.whole_set['id'])
-        if artificial_ae_examples is not None:
-            self._add_artificial_ae_examples(artificial_ae_examples)
+        return tensors, tensors_abp
 
     def get_class_weights(self):
         ids = self.whole_set["id"].numpy()
@@ -410,35 +497,38 @@ class resampling_dataset_loader(Dataset):
             return (signal*noise)/max(signal*noise), (signal_abp*noise)/max(signal_abp*noise)
         return (signal*noise)/max(signal*noise)
 
-    def _add_artificial_ae_examples(self, no_of_examples = 2000):
-        df = pd.DataFrame(self.whole_set)
+    def _create_artificial_ae_examples(self, no_of_examples = 2000):
+        df = pd.DataFrame({
+        "id": self.labels,
+        "data_icp": self.tensors,
+        "data_abp": self.tensors_abp
+        })
         queried = df.query("id != 4")
         cho = random.choices(np.arange(len(queried)), k=no_of_examples)
-        if self.multilabel:
-            whole_id = self.whole_set["id"]
-        else:
-            whole_id = self.whole_set["id"].tolist()
-        new_ids = []
+        whole_id = self.labels
+        self.artificial_labels = []
+        self.artificial_lables_ml = []
+        self.artificial_icp = []
+        self.artificial_abp = []
         for choice in cho:
             row = queried.iloc[choice]
             ID = row["id"]
             if self.siamese:
                 icp_new, abp_new = self._apply_noise(row["data_icp"], row["data_abp"])
-                self.whole_set["data_icp"].append(icp_new)
-                self.whole_set["data_abp"].append(abp_new)
+                self.artificial_icp.append(icp_new)
+                self.artificial_abp.append(abp_new)
             else:
                 icp_new = self._apply_noise(row["data_icp"])
-                self.whole_set["data_icp"].append(icp_new)
-            if self.multilabel:
-                lbl = torch.tensor([0, 0, 0, 0, 1], dtype=torch.float)
-                lbl[np.argmax(ID)] = 1
-                new_ids.append(lbl)
-            else:
-                whole_id.append(4)
-            if self.multilabel:
-                self.whole_set["id"] = torch.cat((whole_id, torch.stack(new_ids)), 0)
-            else:
-                self.whole_set["id"] = torch.tensor(whole_id, dtype=torch.long).view(-1)
+                self.artificial_icp.append(icp_new)
+
+            lbl = torch.tensor([0, 0, 0, 0, 1], dtype=torch.float)
+            lbl[np.argmax(ID)] = 1
+            self.artificial_lables_ml.append(lbl)
+            self.artificial_labels.append(4)
+
+
+        self.artificial_lables_ml = torch.stack(new_ids)
+        self.artificial_labels = torch.tensor(self.artificial_labels, dtype=torch.long).view(-1)
 
     def __len__(self):
         return self.length
@@ -466,6 +556,95 @@ class resampling_dataset_loader(Dataset):
             }
         else:
             return {
-                "image": data_icp,
+                "data_icp": data_icp,
                 "label": label
             }
+
+class Memory_efficient_loader(Dataset):
+    def __init__(self, dataset_folder, normalize=True, siamese=True, csv=False):
+        self.siamese = siamese
+        self.normalize = normalize
+        self.padding_minimum = 180
+        data_folder = Path(str(dataset_folder))
+        data_files = list(data_folder.glob('*.csv'))
+        self.length = len(data_files)
+        self.data_files = data_files
+        self.csv=csv
+
+    def _load_file(self, idx):
+        file_path = self.data_files[idx]
+        df = pd.read_csv(file_path)
+        data = df.iloc[:, 1:].values[:, 0]
+
+        interp = interpolate.interp1d(np.arange(0, len(data), 1), data,
+                                        kind="cubic")
+        new_t = np.linspace(0, len(data)-1, self.padding_minimum)
+        data = interp(new_t)
+
+        if self.normalize:
+            data = data - np.min(data)
+            if np.max(data) != 0:
+                data = data / np.max(data)
+
+        icp = torch.tensor(data, dtype=torch.float)
+        if self.siamese:
+            data_abp = df.iloc[:, 1:].values[:, 1]
+            interp_abp = interpolate.interp1d(np.arange(0, len(data_abp), 1), data_abp,
+                                            kind="cubic")
+            data_abp = interp_abp(new_t)
+            if self.normalize:
+                data_abp = data_abp - np.min(data_abp)
+                if np.max(data_abp) != 0:
+                    data_abp = data_abp / np.max(data_abp)
+
+            abp = torch.tensor(data_abp, dtype=torch.float)
+            return icp, abp
+        return icp, None
+
+    def load_pickle(self, idx):
+        file_path = self.data_files[idx]
+        with open(file_path, "rb") as file:
+            loaded = pickle.load(file)
+        if self.siamese:
+            return loaded["icp"], loaded["abp"]
+        else:
+            return loaded["icp"], None
+
+    def __len__(self):
+        return self.length
+
+    def set_parameters(self, siamese):
+        self.siamese = siamese
+
+    def __getitem__(self, idx):
+
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        elif not isinstance(idx, list):
+            idx = [idx]
+        icps = []
+        abps = []
+        for id in idx:
+            if self.csv:
+                icp, abp = self._load_file(id)
+                icps.append(icp)
+                abps.append(abp)
+            else:
+                icp, abp = self.load_pickle(id)
+                icps+=icp
+                abps+=abp
+        if self.csv:
+            icps = torch.cat(icps)
+            abps = torch.cat(abps)
+        else:
+            icps = torch.tensor(icps, dtype=torch.float)
+            abps = torch.tensor(abps, dtype=torch.float)
+        if self.siamese:
+            return {
+                    "data_icp": icps,
+                    "data_abp": abps
+                }
+        else:
+            return {
+                    "data_icp": icps
+                }

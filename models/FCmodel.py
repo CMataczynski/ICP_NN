@@ -3,16 +3,26 @@ from torch import nn
 
 
 class FCmodel(nn.Module):
-    def __init__(self, in_features, out_features, hidden1=32, hidden2=16):
+    def __init__(self, in_features, out_features, hidden1=64, hidden2=32, ae=False):
+        drop_val = 0.2
         super(FCmodel, self).__init__()
-        self.input_layer = nn.Linear(in_features, hidden1)
-        self.dropout0 = nn.Dropout(0.2)
-        self.hidden_layer_1 = nn.Linear(hidden1, hidden2)
-        self.dropout1 = nn.Dropout(0.2)
-        self.output_layer = nn.Linear(hidden2, out_features)
+        self.hidden2 = hidden2
+        self.feature_extractor = nn.Sequential(
+            nn.Linear(in_features, hidden1),
+            nn.Dropout(drop_val),
+            nn.ReLU(),
+            nn.Linear(hidden1, hidden2),
+            nn.Dropout(drop_val),
+            nn.ReLU()
+        )
+        self.ae = ae
+        self.classification_layer = nn.Linear(hidden2, out_features)
 
-    def forward(self, X, **kwargs):
-        X = F.relu(self.dropout0(self.input_layer(X)))
-        X = F.relu(self.dropout1(self.hidden_layer_1(X)))
-        X = self.output_layer(X)
+    def forward(self, X,):
+        X = self.feature_extractor(X)
+        if not self.ae:
+            X = self.classification_layer(X)
         return X
+
+    def embed_size(self):
+        return self.hidden2

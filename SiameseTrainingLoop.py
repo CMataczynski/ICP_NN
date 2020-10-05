@@ -10,59 +10,15 @@ import numpy as np
 import datetime as dt
 from torch.utils.data import Dataset
 from models.SiameseModels import SiameseNeuralODE, SiameseResNet, SiameseShallowCNN
-from utils import plot_confusion_matrix, resampling_dataset_loader
+from utils import plot_confusion_matrix, resampling_dataset_loader, RunningAverageMeter
 from torchvision.transforms import Compose
 from tqdm import tqdm
 from scipy import interpolate
 import random
 
-class RunningAverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self, momentum=0.99):
-        self.momentum = momentum
-        self.reset()
-
-    def reset(self):
-        self.val = None
-        self.avg = 0
-
-    def update(self, val):
-        if self.val is None:
-            self.avg = val
-        else:
-            self.avg = self.avg * self.momentum + val * (1 - self.momentum)
-        self.val = val
 
 
-def inf_generator(iterable):
-    """Allows training with DataLoaders in a single infinite loop:
-        for i, (x, y) in enumerate(inf_generator(train_loader)):
-    """
-    iterator = iterable.__iter__()
-    while True:
-        try:
-            yield iterator.__next__()
-        except StopIteration:
-            iterator = iterable.__iter__()
 
-
-def learning_rate_with_decay(lr, batch_size, batch_denom, batches_per_epoch, boundary_epochs, decay_rates):
-    initial_learning_rate = lr * batch_size / batch_denom
-
-    boundaries = [int(batches_per_epoch * epoch) for epoch in boundary_epochs]
-    vals = [initial_learning_rate * decay for decay in decay_rates]
-
-    def learning_rate_fn(itr):
-        lt = [itr < b for b in boundaries] + [True]
-        i = np.argmax(lt)
-        return vals[i]
-
-    return learning_rate_fn
-
-def makedirs(dirname):
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
 
 def one_hot(x, K):
     return np.array(x[:, None] == np.arange(K)[None, :], dtype=int)
@@ -83,7 +39,7 @@ def accuracy_and_f1(model, dataset_loader,no_classes , device="cpu", multilabel=
         target_class = np.argmax(y, axis=1)
         if multilabel:
             sig = nn.Sigmoid()
-            predicted = sig(model(x).cpu().detach()).numpy()
+            predicted = sig(model(x, x_abp).cpu().detach()).numpy()
             predicted_class = np.where(predicted >= 0.5, np.ones(predicted.shape), np.zeros(predicted.shape))
         else:
             predicted_class = np.argmax(model(x, x_abp).cpu().detach().numpy(), axis=1)

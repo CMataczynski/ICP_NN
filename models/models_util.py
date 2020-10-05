@@ -90,7 +90,7 @@ class BlockDeconv(nn.Module):
         if not sigmoid:
             self.act = nn.ReLU()
         else:
-            self.act = nn.Sigmoid()
+            self.act = nn.Tanh()
 
     def forward(self, x):
         x = self.conv(x)

@@ -79,12 +79,17 @@ class GRU(nn.Module):
 
 
 class LSTMFCN(nn.Module):
-    def __init__(self, time_steps, num_variables=1, lstm_hs=64, channels=[1, 32, 64, 32]):
+    def __init__(self, time_steps, num_variables=1, lstm_hs=64, channels=[1, 32, 64, 32], ae=False):
         super().__init__()
+        self.embed = channels[-1] + lstm_hs
         self.lstm_block = BlockLSTM(time_steps, 1, lstm_hs)
         self.fcn_block = BlockFCN(time_steps)
-        self.dense = nn.Linear(channels[-1] + lstm_hs, num_variables)
-        self.softmax = nn.LogSoftmax(dim=1)  # nn.Softmax(dim=1)
+        self.ae = ae
+        self.classification_layer = nn.Linear(channels[-1] + lstm_hs, num_variables)
+        # self.softmax = nn.LogSoftmax(dim=1)  # nn.Softmax(dim=1)
+
+    def embed_size(self):
+        return self.embed
 
     def forward(self, x):
         x = x.unsqueeze(1)
@@ -97,6 +102,7 @@ class LSTMFCN(nn.Module):
         if len(x2.shape) == 1:
             x2 = x2.view(1,x2.size(0))
         x = torch.cat([x1, x2], 1)
-        x = self.dense(x)
-        y = self.softmax(x)
-        return y
+        if not self.ae:
+            x = self.classification_layer(x)
+        # y = self.softmax(x)
+        return x

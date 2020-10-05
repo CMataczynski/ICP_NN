@@ -16,7 +16,7 @@ class Flatten(nn.Module):
         return x.view(-1, shape)
 
 class SiameseResNet(nn.Module):
-    def __init__(self, no_classes, feature_extraction_layers=6):
+    def __init__(self, no_classes, feature_extraction_layers=6, ae=False):
         super().__init__()
         self.downsampling_layers = [
             nn.Conv1d(1, 64, 3, 1),
@@ -28,6 +28,7 @@ class SiameseResNet(nn.Module):
                     nn.AdaptiveAvgPool1d(1), Flatten(),
                     nn.Dropout(0.6), nn.Linear(64,32), nn.ReLU(inplace=True)]
         self.classification_layer = nn.Linear(64, no_classes)
+        self.ae = ae
         self.feature_extractor = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
 
     def forward(self, icp, abp):
@@ -36,11 +37,17 @@ class SiameseResNet(nn.Module):
         icp_features = self.feature_extractor(icp)
         abp_features = self.feature_extractor(abp)
         concatenated = torch.cat((icp_features, abp_features), 1)
-        return self.classification_layer(concatenated)
+        if not self.ae:
+            return self.classification_layer(concatenated)
+        else:
+            return concatenated
+
+    def embed_size(self):
+        return 64
 
 
 class SiameseNeuralODE(nn.Module):
-    def __init__(self, no_classes):
+    def __init__(self, no_classes, ae=False):
         super().__init__()
         self.downsampling_layers = [
             nn.Conv1d(1, 64, 3, 1),
@@ -52,6 +59,7 @@ class SiameseNeuralODE(nn.Module):
                     nn.AdaptiveAvgPool1d(1), Flatten(),
                     nn.Dropout(0.6), nn.Linear(64,32), nn.ReLU(inplace=True)]
         self.classification_layer = nn.Linear(64, no_classes)
+        self.ae = ar
         self.feature_extractor = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
 
     def forward(self, icp, abp):
@@ -60,7 +68,13 @@ class SiameseNeuralODE(nn.Module):
         icp_features = self.feature_extractor(icp)
         abp_features = self.feature_extractor(abp)
         concatenated = torch.cat((icp_features, abp_features), 1)
-        return self.classification_layer(concatenated)
+        if not self.ae:
+            return self.classification_layer(concatenated)
+        else:
+            return concatenated
+
+    def embed_size(self):
+        return 64
 
 
 class SiameseShallowCNN(nn.Module):
