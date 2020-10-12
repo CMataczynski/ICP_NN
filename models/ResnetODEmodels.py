@@ -18,10 +18,10 @@ from torchdiffeq import odeint_adjoint as odeint
 
 
 class ODE(nn.Module):
-    def __init__(self, no_classes, ae=False):
+    def __init__(self, no_classes, in_channels=1, ae=False):
         super().__init__()
         self.downsampling_layers = [
-            nn.Conv1d(1, 64, 3, 1),
+            nn.Conv1d(in_channels, 64, 3, 1),
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
         ]
@@ -42,10 +42,10 @@ class ODE(nn.Module):
         return 64
 
 class ResNet(nn.Module):
-    def __init__(self, no_classes):
+    def __init__(self, no_classes, in_channels=1, ae=False):
         super().__init__()
         self.downsampling_layers = [
-            nn.Conv1d(1, 64, 3, 1),
+            nn.Conv1d(in_channels, 64, 3, 1),
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
         ]
@@ -61,6 +61,6 @@ class ResNet(nn.Module):
         if not self.ae:
             X = self.classification_layer(X)
         return X
-        
+
     def embed_size(self):
         return 64

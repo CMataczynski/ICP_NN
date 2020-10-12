@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from models.models_util import BlockLSTM, BlockFCN
+from models.models_util import BlockLSTM, BlockFCN 
 
 
 class LSTM(nn.Module):
@@ -72,9 +72,9 @@ class GRU(nn.Module):
         input_seq = input_seq.unsqueeze(0)
         gru_out, self.hidden_cell = self.gru(input_seq)
         if self.linear is not None:
-            predictions = self.linear(gru_out[-1,:,:])
+            predictions = self.linear(gru_out[-1, :, :])
         else:
-            predictions = gru_out[-1,:,:]
+            predictions = gru_out[-1, :, :]
         return predictions
 
 
@@ -82,8 +82,8 @@ class LSTMFCN(nn.Module):
     def __init__(self, time_steps, num_variables=1, lstm_hs=64, channels=[1, 32, 64, 32], ae=False):
         super().__init__()
         self.embed = channels[-1] + lstm_hs
-        self.lstm_block = BlockLSTM(time_steps, 1, lstm_hs)
-        self.fcn_block = BlockFCN(time_steps)
+        self.lstm_block = BlockLSTM(time_steps * channels[0], 1, lstm_hs)
+        self.fcn_block = BlockFCN(time_steps, channels=channels)
         self.ae = ae
         self.classification_layer = nn.Linear(channels[-1] + lstm_hs, num_variables)
         # self.softmax = nn.LogSoftmax(dim=1)  # nn.Softmax(dim=1)
@@ -92,15 +92,19 @@ class LSTMFCN(nn.Module):
         return self.embed
 
     def forward(self, x):
-        x = x.unsqueeze(1)
-        x1 = self.lstm_block(x)
+        x_lstm = torch.reshape(x, (x.size(0), -1))
+        x_lstm = x_lstm.unsqueeze(1)
+        x1 = self.lstm_block(x_lstm)
         x1 = torch.squeeze(x1)
         if len(x1.shape) == 1:
-            x1 = x1.view(1,x1.size(0))
+            x1 = x1.view(1, x1.size(0))
+        if len(x.shape) == 2:
+            x = x.unsqueeze(1)
+        
         x2 = self.fcn_block(x)
         x2 = torch.squeeze(x2)
         if len(x2.shape) == 1:
-            x2 = x2.view(1,x2.size(0))
+            x2 = x2.view(1, x2.size(0))
         x = torch.cat([x1, x2], 1)
         if not self.ae:
             x = self.classification_layer(x)

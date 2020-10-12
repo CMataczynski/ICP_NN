@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-import numpy as np
+import numpy as np 
 from torchdiffeq import odeint_adjoint as odeint
 
 def conv3x3(in_planes, out_planes, stride=1):
@@ -118,7 +118,7 @@ class BlockLSTM(nn.Module):
 
 
 class BlockFCN(nn.Module):
-    def __init__(self, time_steps, channels=[1, 32, 64, 32], kernels=[8, 5, 3], mom=0.99, eps=0.001):
+    def __init__(self, time_steps, channels=[1, 32, 64, 64], kernels=[8, 5, 3], mom=0.99, eps=0.001):
         super().__init__()
         self.conv1 = BlockConv(channels[0], channels[1], kernels[0], momentum=mom, epsilon=eps)
         self.conv2 = BlockConv(channels[1], channels[2], kernels[1], momentum=mom, epsilon=eps)
@@ -133,7 +133,6 @@ class BlockFCN(nn.Module):
         # apply Global Average Pooling 1D
         y = self.global_pooling(x)
         return y
-
 
 
 class ODEfunc(nn.Module):
@@ -159,19 +158,17 @@ class ODEfunc(nn.Module):
         out = self.norm3(out)
         return out
 
+ 
+# class Flatten(nn.Module):
 
+#     def __init__(self):
+#         super(Flatten, self).__init__()
 
-class Flatten(nn.Module):
-
-    def __init__(self):
-        super(Flatten, self).__init__()
-
-    def forward(self, x):
-        shape = torch.prod(torch.tensor(x.shape[1:])).item()
-        return x.view(-1, shape)
-
+#     def forward(self, x):
+#         shape = torch.prod(torch.tensor(x.shape[1:])).item()
+#         return x.view(-1, shape)
+ 
 class ODEBlock(nn.Module):
-
     def __init__(self, odefunc):
         super(ODEBlock, self).__init__()
         self.odefunc = odefunc

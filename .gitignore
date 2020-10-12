@@ -8,3 +8,5 @@ results/
 .ipynb_checkpoints/
 *.bat
 old_experiments/
+.vscode/
+.flake8

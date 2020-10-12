@@ -26,7 +26,7 @@ class SiameseResNet(nn.Module):
         self.feature_layers = [ResBlock(64, 64) for _ in range(feature_extraction_layers)]
         self.fc_layers = [norm(64), nn.ReLU(inplace=True),
                     nn.AdaptiveAvgPool1d(1), Flatten(),
-                    nn.Dropout(0.6), nn.Linear(64,32), nn.ReLU(inplace=True)]
+                    nn.Dropout(0.6), nn.Linear(64, 32), nn.ReLU(inplace=True)]
         self.classification_layer = nn.Linear(64, no_classes)
         self.ae = ae
         self.feature_extractor = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
@@ -57,9 +57,9 @@ class SiameseNeuralODE(nn.Module):
         self.feature_layers = [ODEBlock(ODEfunc(64))]
         self.fc_layers = [norm(64), nn.ReLU(inplace=True),
                     nn.AdaptiveAvgPool1d(1), Flatten(),
-                    nn.Dropout(0.6), nn.Linear(64,32), nn.ReLU(inplace=True)]
+                    nn.Dropout(0.6), nn.Linear(64, 32), nn.ReLU(inplace=True)]
         self.classification_layer = nn.Linear(64, no_classes)
-        self.ae = ar
+        self.ae = ae
         self.feature_extractor = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
 
     def forward(self, icp, abp):

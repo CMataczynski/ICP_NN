@@ -68,7 +68,7 @@ def transform_fourier(y):
 
 
 def get_fourier_coeff(x, y):
-    fft = np.fft.fft(y, n=180)/len(y)
+    fft = np.fft.fft(y, n=180) / len(y)
     fft *= 2
     out = []
     out.append(fft[0].real)
@@ -85,16 +85,16 @@ def files(path):
 def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=False):
     cm = confusion_matrix(correct_labels, predict_labels, labels=labels)
     if normalize:
-        cm = cm.astype('float')*10 / cm.sum(axis=1)[:, np.newaxis]
+        cm = cm.astype('float') * 10 / cm.sum(axis=1)[:, np.newaxis]
         cm = np.nan_to_num(cm, copy=True)
         cm = cm.astype('int')
 
     np.set_printoptions(precision=2)
-    ###fig, ax = matplotlib.figure.Figure()
+    ###fig, ax = matplotlib.figure.Figure() 
 
     fig = plt.figure(figsize=(7, 7), dpi=320, facecolor='w', edgecolor='k')
     ax = fig.add_subplot(1, 1, 1)
-    im = ax.imshow(cm, cmap='Oranges')
+    ax.imshow(cm, cmap='Oranges')
 
     classes = [re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', x) for x in labels]
     classes = ['\n'.join(wrap(l, 40)) for l in classes]
@@ -103,7 +103,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
 
     ax.set_xlabel('Predicted', fontsize=7)
     ax.set_xticks(tick_marks)
-    c = ax.set_xticklabels(classes, fontsize=4, rotation=-90,  ha='center')
+    ax.set_xticklabels(classes, fontsize=4, rotation=-90, ha='center')
     ax.xaxis.set_label_position('bottom')
     ax.xaxis.tick_bottom()
 
@@ -114,7 +114,7 @@ def plot_confusion_matrix(correct_labels, predict_labels, labels, normalize=Fals
     ax.yaxis.tick_left()
 
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        ax.text(j, i, format(cm[i, j], 'd') if cm[i,j]!=0 else '.', horizontalalignment="center", fontsize=6, verticalalignment='center', color= "black")
+        ax.text(j, i, format(cm[i, j], 'd') if cm[i, j] != 0 else '.', horizontalalignment="center", fontsize=6, verticalalignment='center', color= "black")
     fig.set_tight_layout(True)
     return fig
 
@@ -151,8 +151,8 @@ class Initial_dataset_loader(Dataset):
                         # print("max: {}".format(np.max(data)))
                         data = data / np.max(data)
                     if len(data) > padding_minimum:
-                        start = (len(data)-padding_minimum)//2
-                        data = data[start:start+padding_minimum]
+                        start = (len(data) - padding_minimum) // 2
+                        data = data[start:start + padding_minimum]
                     bckg = np.zeros(padding_minimum)
                     bckg[-len(data):] = data
                     tensors.append(torch.tensor(bckg, dtype=torch.double))
@@ -227,19 +227,19 @@ class ShortenOrElongateTransform:
         elongate_available = False
         shorten_available = False
         window_length = min(len(np_x), random.randint(self.window_min, self.window_max))
-        window_start = random.randint(0, len(np_x)-window_length)
+        window_start = random.randint(0, len(np_x) - window_length)
         prob_elongate = 0
         prob_shorten = 0
         multiplier = random.randint(2, self.max_multiplier)
-        shorten_length = window_length//multiplier
-        elongate_length = window_length*multiplier - window_length
+        shorten_length = window_length // multiplier
+        elongate_length = window_length * multiplier - window_length
         if len(np_x) - shorten_length > self.min_length:
             shorten_available = True
-            prob_shorten = self.probability/2
+            prob_shorten = self.probability / 2
         if elongate_length + len(np_x) < self.max_length:
             elongate_available = True
             if shorten_available:
-                prob_elongate = self.probability/2
+                prob_elongate = self.probability / 2
             else:
                 prob_elongate = self.probability
         else:
@@ -248,12 +248,12 @@ class ShortenOrElongateTransform:
 
         roll = random.random()
         if roll <= prob_shorten and shorten_available:
-            rest = random.randint(0, multiplier-1)
+            rest = random.randint(0, multiplier - 1)
             window = np_x[window_start:window_start + window_length]
             return_val = np.array([i for num, i in enumerate(window) if num % multiplier == rest])
             # print(window_start, window_length)
             return_val = np.append(np_x[:window_start], np.append(return_val, np_x[window_start+window_length:]))
-        elif roll <= prob_elongate+prob_shorten and elongate_available:
+        elif roll <= prob_elongate + prob_shorten and elongate_available:
             window = np_x[window_start:window_start + window_length]
             interp_func = interpolate.interp1d(np.arange(0, len(window), 1), window, kind=self.kind)
             xnew = np.arange(0, len(window) - 1, 1 / multiplier)
@@ -302,8 +302,8 @@ class PlotToImage:
 #
 
 class resampling_dataset_loader(Dataset):
-    def __init__(self, dataset_folder, transforms=None, full=False, normalize=True,
-                    siamese=False, include_artificial_ae = False, artificial_ae_examples=None,
+    def __init__(self, dataset_folder, transforms=None, full=True, normalize=True,
+                    siamese=False, include_artificial_ae = False, artificial_ae_examples=2000,
                     multilabel = False, multilabel_mapping_path = None, multilabel_labels_path = None):
         self.siamese = siamese
         self.multilabel = multilabel
@@ -324,8 +324,9 @@ class resampling_dataset_loader(Dataset):
             self._create_artificial_ae_examples(0)
 
         self.set_parameters(siamese, multilabel, include_artificial_ae, transforms)
-
-
+        # print(len(self.tensors))
+        # print(len(self.tensors_abp))
+        # print(len(self.labels))
 
     def set_parameters(self, siamese, multilabel, include_artificial_ae, transforms):
         self.siamese = siamese
@@ -336,17 +337,17 @@ class resampling_dataset_loader(Dataset):
             if multilabel:
                 labels = torch.stack(self.labels_ml)
             else:
-                labels = torch.tensor(sekf.labels, dtype=torch.long).view(-1)
+                labels = torch.tensor(self.labels, dtype=torch.long).view(-1)
             if include_artificial_ae:
                 tensors = torch.cat((self.tensors, self.artificial_icp))
-                tensors = torch.cat((self.tensors_abp, self.artificial_abp))
+                tensors_abp = torch.cat((self.tensors_abp, self.artificial_abp))
                 if multilabel:
                     labels = torch.cat((labels, self.artificial_labels_ml))
                 else:
                     labels = torch.cat((labels, self.artificial_labels))
             else:
-                    tensors = torch.cat((self.tensors, self.artificial_icp))
-                    tensors = torch.cat((self.tensors_abp, self.artificial_abp))
+                tensors = self.tensors
+                tensors_abp = self.tensors_abp
             self.whole_set = {
                 'data_icp': tensors,
                 'data_abp': tensors_abp,
@@ -364,7 +365,7 @@ class resampling_dataset_loader(Dataset):
                 else:
                     labels = torch.cat((labels, self.artificial_labels))
             else:
-                    tensors = torch.cat((self.tensors, self.artificial_icp))
+                tensors = self.tensors
             self.whole_set = {
                 'data_icp': tensors,
                 'id': labels
@@ -482,7 +483,7 @@ class resampling_dataset_loader(Dataset):
         no_of_sines = random.randint(min_sines, max_sines)
         for i in range(no_of_sines):
             x = np.linspace(-np.pi, np.pi, length)
-            f = random.randint(1,max_hz)
+            f = random.randint(1, max_hz)
             fi = random.random()
             noise += np.sin(f * x + fi)
 
@@ -498,14 +499,15 @@ class resampling_dataset_loader(Dataset):
         return (signal*noise)/max(signal*noise)
 
     def _create_artificial_ae_examples(self, no_of_examples = 2000):
+        if no_of_examples <= 0:
+            return
         df = pd.DataFrame({
-        "id": self.labels,
-        "data_icp": self.tensors,
-        "data_abp": self.tensors_abp
+            "id": self.labels,
+            "data_icp": self.tensors,
+            "data_abp": self.tensors_abp
         })
         queried = df.query("id != 4")
         cho = random.choices(np.arange(len(queried)), k=no_of_examples)
-        whole_id = self.labels
         self.artificial_labels = []
         self.artificial_lables_ml = []
         self.artificial_icp = []
@@ -526,8 +528,7 @@ class resampling_dataset_loader(Dataset):
             self.artificial_lables_ml.append(lbl)
             self.artificial_labels.append(4)
 
-
-        self.artificial_lables_ml = torch.stack(new_ids)
+        self.artificial_lables_ml = torch.stack(self.artificial_lables_ml)
         self.artificial_labels = torch.tensor(self.artificial_labels, dtype=torch.long).view(-1)
 
     def __len__(self):
@@ -566,10 +567,14 @@ class Memory_efficient_loader(Dataset):
         self.normalize = normalize
         self.padding_minimum = 180
         data_folder = Path(str(dataset_folder))
-        data_files = list(data_folder.glob('*.csv'))
+        if csv:
+            data_files = list(data_folder.glob('*.csv'))
+        else:
+            data_files = list(data_folder.glob('*.pkl'))
         self.length = len(data_files)
+        print(self.length)
         self.data_files = data_files
-        self.csv=csv
+        self.csv = csv
 
     def _load_file(self, idx):
         file_path = self.data_files[idx]
@@ -631,8 +636,8 @@ class Memory_efficient_loader(Dataset):
                 abps.append(abp)
             else:
                 icp, abp = self.load_pickle(id)
-                icps+=icp
-                abps+=abp
+                icps += icp
+                abps += abp
         if self.csv:
             icps = torch.cat(icps)
             abps = torch.cat(abps)
@@ -641,10 +646,10 @@ class Memory_efficient_loader(Dataset):
             abps = torch.tensor(abps, dtype=torch.float)
         if self.siamese:
             return {
-                    "data_icp": icps,
-                    "data_abp": abps
+                "data_icp": icps,
+                "data_abp": abps
                 }
         else:
             return {
-                    "data_icp": icps
+                "data_icp": icps
                 }

@@ -19,7 +19,8 @@ def makedirs(dirname):
 class Trainer:
     def __init__(self, name, network, train_dataloader, test_dataloader, criterion,
                 optimizer, class_dict, metrics, output_to_pred_fcn, loss_preprocessing=None,
-                leading_metric=None, scheduler=None, nfe_logging = False):
+                leading_metric=None, scheduler=None, nfe_logging = False,
+                input_preprocessing=None):
         self.name = name
         #string with exp name
         self.net = network
@@ -55,9 +56,15 @@ class Trainer:
         else:
             self.loss_preprocessing = lambda x: x
 
+        self.class_dict = class_dict
+
+        if input_preprocessing is not None:
+            self.input_preprocessing = input_preprocessing
+        else:
+            self.input_preprocessing = lambda x: x
+
     def train(self, number_of_epochs):
         model = self.net
-        no_classes = len(self.class_dict.keys())
         device = self.device
         name = self.name
         writer = SummaryWriter(log_dir='experiments/' + str(name))
@@ -77,7 +84,7 @@ class Trainer:
         best_leading_metric = 0.0
         batch_time_meter = RunningAverageMeter()
         loss_meter = RunningAverageMeter()
-        if nfe_logging:
+        if self.nfe_logging:
             f_nfe_meter = RunningAverageMeter()
             b_nfe_meter = RunningAverageMeter()
         end = time.time()
@@ -93,6 +100,7 @@ class Trainer:
             model_input = [dct[key].float().to(device) for key in dct.keys() if "data" in key]
             y = dct["label"].to(device)
             # x = x.unsqueeze(1)
+            model_input = self.input_preprocessing(model_input)
             logits = model(*model_input)
             logits = self.loss_preprocessing(logits)
             loss = criterion(logits, y)
@@ -103,9 +111,9 @@ class Trainer:
 
             loss.backward()
             optimizer.step()
-            running_loss.update(loss.item())
+            loss_meter.update(loss.item())
             if itr % 10 == 9:
-                writer.add_scalar("Loss/train", running_loss.val, itr)
+                writer.add_scalar("Loss/train", loss_meter.val, itr)
             if self.nfe_logging:
                 nfe_backward = model.feature_layers[0].nfe
                 model.feature_layers[0].nfe = 0
@@ -121,10 +129,14 @@ class Trainer:
                     preds = []
                     labs = []
                     for i, data in enumerate(test_loader, 0):
-                        model_input = [dct[key].float().to(device) for key in dct.keys() if "data" in key]
+                        model_input = [data[key].float().to(device) for key in data.keys() if "data" in key]
                         labels = data['label'].to(device)
-                        outputs = net(*model_input)
+                        model_input = self.input_preprocessing(model_input)
+                        outputs = model(*model_input)
                         predicted = self.output_to_pred_fcn(outputs)
+                        # if len(predicted.tolist()) != len(labels.tolist()):
+                        #     print(len(model_input[0].tolist()))
+                        #     print(len(labels.tolist()))
                         preds += predicted.tolist()
                         labs += labels.tolist()
                     for metric in self.metrics.keys():
@@ -132,32 +144,40 @@ class Trainer:
                         if metric == self.leading_metric and metric_val > best_leading_metric:
                             best_leading_metric = metric_val
                             torch.save({'state_dict': model.state_dict()},
-                                        os.path.join(os.getcwd(),"experiments",
-                                                    name,'model_best.pth'))
-                        writer.add_scalar(metric + "/test", metric_val, itr//batches_per_epoch)
+                                        os.path.join(os.getcwd(), "experiments",
+                                                    name, 'model_best.pth'))
+                        writer.add_scalar(metric + "/test", metric_val, itr // batches_per_epoch)
                     if self.nfe_logging:
-                        writer.add_scalar("NFE-F", f_nfe_meter.val, itr//batches_per_epoch)
-                        writer.add_scalar("NFE-B", b_nfe_meter.val, itr//batches_per_epoch)
-
+                        writer.add_scalar("NFE-F", f_nfe_meter.val, itr // batches_per_epoch)
+                        writer.add_scalar("NFE-B", b_nfe_meter.val, itr // batches_per_epoch)
 
         labs = []
         preds = []
         for data in test_loader:
-            model_input = [dct[key].float().to(device) for key in dct.keys() if "data" in key]
-            labels = data['label'].to(device)
-            outputs = net(*model_input)
-            predicted = self.output_to_pred_fcn(outputs)
-            preds += predicted.tolist()
-            labs += labels.tolist()
+            with torch.no_grad():
+                model.eval()
+                model_input = [data[key].float().to(device) for key in data.keys() if "data" in key]
+                labels = data['label'].to(device)
+                model_input = self.input_preprocessing(model_input)
+                outputs = model(*model_input)
+                predicted = self.output_to_pred_fcn(outputs)
+                preds += predicted.tolist()
+                labs += labels.tolist()
 
-        labs = [class_dict[a] for a in labs]
-        preds = [class_dict[a] for a in preds]
-        other_metrics = [[metric, self.metrics[metric](labs,preds)] for metric in metrics if metric is not self.leading_metric]
-        writer.add_figure(name + " - Confusion Matrix",
-                          plot_confusion_matrix(labs, preds,
-                          [class_dict[key] for key in class_dict.keys()]))
+        labs = [self.class_dict[a] for a in labs]
+        preds = [self.class_dict[a] for a in preds]
+        other_metrics = [[metric, [self.metrics[metric](labs, preds)]] for metric in self.metrics if metric is not self.leading_metric]
+        torch.save({'state_dict': model.state_dict()},
+                    os.path.join(os.getcwd(), "experiments",
+                            name, 'model_last.pth'))
+        try:
+            writer.add_figure(name + " - Confusion Matrix",
+                            plot_confusion_matrix(labs, preds,
+                          [self.class_dict[key] for key in self.class_dict.keys()]))
+        except:
+            pass 
         writer.close()
-        return [self.leading_metric, best_leading_metric], other_metrics
+        return [self.leading_metric, [best_leading_metric]], other_metrics
 
 class PreTrainer:
     def __init__(self, name, network, train_dataloader, criterion,
@@ -166,7 +186,7 @@ class PreTrainer:
         #string with exp name
         self.encoder_net = network
         #torch network
-        self.decoder_net = FCDecoder(network.embed_size(), 2*180)
+        self.decoder_net = FCDecoder(network.embed_size(), 2 * 180)
 
         self.train_dataloader = train_dataloader
         #dataloaders
@@ -220,12 +240,12 @@ class PreTrainer:
             optimizer.zero_grad()
             # print("models_working: {}".format(time.time() - end))
             dct = data_gen.__next__()
-            model_input = [dct[key].float().to(device) for key in dct.keys() if "data" in key]
+            model_input = [torch.reshape(dct[key].float(), (-1, 180)).to(device) for key in dct.keys() if "data" in key]
             # print("data_generated: {}".format(time.time() - end))
             embedding = model(*model_input)
             logits = decoder(embedding)
             logits = self.loss_preprocessing(logits) * 100
-            model_input = torch.stack(model_input, dim=-1)*100
+            model_input = torch.stack(model_input, dim=-1) * 100
             # print("predictions_made: {}".format(time.time() - end))
             loss = criterion(logits, model_input)
             # print("loss_counted: {}".format(time.time() - end))
@@ -236,8 +256,8 @@ class PreTrainer:
             if itr % 10 == 0:
                 writer.add_scalar("Loss/train", loss_meter.val, itr)
                 torch.save({'state_dict': model.state_dict()},
-                            os.path.join(os.getcwd(),"experiments",
-                                        name,'model_final.pth'))
+                            os.path.join(os.getcwd(), "experiments",
+                                        name, 'model_final.pth'))
             batch_time_meter.update(time.time() - end)
             writer.add_scalar("batch_time/train", batch_time_meter.val, itr)
             end = time.time()

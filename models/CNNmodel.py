@@ -4,7 +4,7 @@ from models.models_util import BlockConv, BlockConv2d, Flatten, BlockDeconv
 
 
 class CNN(nn.Module):
-    def __init__(self, time_steps, out_features=4, channels=[1, 32, 64, 64],
+    def __init__(self, out_features, channels=[1, 32, 64, 64],
                     kernels=[9, 5, 3], mom=0.99, eps=0.001, ae=False):
         super().__init__()
         dropout_val = 0.3
@@ -24,7 +24,7 @@ class CNN(nn.Module):
         self.ae = ae
 
     def forward(self, x):
-        x = feature_extractor(x)
+        x = self.feature_extractor(x)
         if not self.ae:
             x = self.classification_layer(x)
         return x
