@@ -339,10 +339,10 @@ class resampling_dataset_loader(Dataset):
             else:
                 labels = torch.tensor(self.labels, dtype=torch.long).view(-1)
             if include_artificial_ae:
-                tensors = torch.cat((self.tensors, self.artificial_icp))
-                tensors_abp = torch.cat((self.tensors_abp, self.artificial_abp))
+                tensors = self.tensors + self.artificial_icp
+                tensors_abp = self.tensors_abp + self.artificial_abp
                 if multilabel:
-                    labels = torch.cat((labels, self.artificial_labels_ml))
+                    labels = torch.cat((labels, self.artificial_lables_ml))
                 else:
                     labels = torch.cat((labels, self.artificial_labels))
             else:
@@ -359,9 +359,9 @@ class resampling_dataset_loader(Dataset):
             else:
                 labels = torch.tensor(self.labels, dtype=torch.long).view(-1)
             if include_artificial_ae:
-                tensors = torch.cat((self.tensors, self.artificial_icp))
+                tensors = self.tensors + self.artificial_icp
                 if multilabel:
-                    labels = torch.cat((labels, self.artificial_labels_ml))
+                    labels = torch.cat((labels, self.artificial_lables_ml))
                 else:
                     labels = torch.cat((labels, self.artificial_labels))
             else:
@@ -466,7 +466,7 @@ class resampling_dataset_loader(Dataset):
 
                 tensors_abp.append(torch.tensor(data_abp, dtype=torch.float))
 
-            tensors.append(torch.tensor(data, dtype=torch.double))
+            tensors.append(torch.tensor(data, dtype=torch.float))
         return tensors, tensors_abp
 
     def get_class_weights(self):
@@ -517,11 +517,11 @@ class resampling_dataset_loader(Dataset):
             ID = row["id"]
             if self.siamese:
                 icp_new, abp_new = self._apply_noise(row["data_icp"], row["data_abp"])
-                self.artificial_icp.append(icp_new)
-                self.artificial_abp.append(abp_new)
+                self.artificial_icp.append(torch.tensor(icp_new, dtype=torch.float))
+                self.artificial_abp.append(torch.tensor(abp_new, dtype=torch.float))
             else:
                 icp_new = self._apply_noise(row["data_icp"])
-                self.artificial_icp.append(icp_new)
+                self.artificial_icp.append(torch.tensor(icp_new, dtype=torch.float))
 
             lbl = torch.tensor([0, 0, 0, 0, 1], dtype=torch.float)
             lbl[np.argmax(ID)] = 1

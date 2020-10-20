@@ -13,11 +13,11 @@ class FileReadError(Exception):
 
 def read_signals_from_csv_with_datetime(file_path: Path, should_resample=False, resampling_freuqency=0):
     with open(file_path) as csv_file:
-        reader = csv.reader(csv_file, delimiter=',')
+        reader = csv.reader(csv_file, delimiter=';')
         headers = next(reader)
         data_cols = get_signal_file_headers(headers)
     with open(file_path) as csv_file:
-        raw_data = pd.read_csv(csv_file, sep=',', index_col=False)
+        raw_data = pd.read_csv(csv_file, sep=";", decimal=',', index_col=False)
 
     datetime = raw_data[data_cols['datetime']].to_numpy()
     t0 = (datetime[0] - np.floor(datetime[0]))*24*3600

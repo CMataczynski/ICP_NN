@@ -6,21 +6,30 @@ from tqdm import tqdm
 import file_operations as fo
 import signal_processing as sproc
 
+def find_patient(string):
+    splitted = string.split('\\')
+    for split in splitted:
+        if "PAC_" in split:
+            return split
+    return "Other"
+
+
 data_folder = Path(r'E:\Projekty\ICPPRoject\icp_21.07\ICP_NN\datasets')
-csv_folder = Path(r'E:\Projekty\ICPPRoject\icp_21.07\ICP_NN\datasets\RAW_unsupervised_training_set')
+csv_folder = Path(r'E:\Projekty\ICPPRoject\icp_21.07\ICP_NN\datasets\aSAH')
 data_files = list(csv_folder.rglob('*.csv'))
 file_count = len(data_files)
 
-resave_folder = data_folder.joinpath('Unsupervised_training_dataset')
+resave_folder = data_folder.joinpath('SAH')
 if not resave_folder.exists():
     resave_folder.mkdir()
 
 for signal_file in tqdm(data_files):
     # try:
-        #print('{}/{}: {}'.format(idx+1, file_count, signal_file.stem))
+    #   print('{}/{}: {}'.format(idx+1, file_count, signal_file.stem))
 
-    patient_folder = resave_folder
-
+    patient_folder = resave_folder.joinpath(find_patient(str(signal_file)))
+    if not patient_folder.exists():
+        patient_folder.mkdir()
     fs_hat, t_hat, raw_icp, raw_abp, f_icp, f_abp, f_fv = fo.\
         read_signals_from_csv_with_datetime(signal_file, should_resample=True, resampling_freuqency=100)
     pulse_onset_inds = sproc.detect_pulses_in_signal(f_icp, max_scale=fs_hat, fs=fs_hat)
