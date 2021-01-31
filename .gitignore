@@ -12,3 +12,4 @@ old_experiments/
 .flake8
 models/Lambdamodel.py
 *.ipynb
+notebooks/
