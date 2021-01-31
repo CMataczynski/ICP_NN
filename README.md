@@ -1,4 +1,4 @@
-# ICP_NN
+# End-to-End Automatic MorphologicalClassification Method of Intracranial PressurePulse Waveforms Using Deep Learning
 
 ## Creating environment
 To create anaconda environment for this project you need to open Anaconda Prompt, change working directory to project folder and run the script
