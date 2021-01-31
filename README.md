@@ -9,18 +9,11 @@ conda env create -f environment.yml
 ```
 [.] - folder
 --[datasets]
-    |--[full_corrected_dataset]
-    |   |--[train]
-    |   |   |-files in the form Class_ID.csv
-    |   |--[test]
-    |   |   |-files in the form Class_ID.csv
     |--[full_dataset]
     |   |--[train]
     |   |   |-files in the form Class_ID.csv
     |   |--[test]
     |   |   |-files in the form Class_ID.csv
-    |--[initial_dataset]
-    |   |-4 csv's
     |--[RAW_dataset]
     |   |-provided dataset
     |--[RAW_corrected_dataset]
@@ -33,18 +26,18 @@ conda env create -f environment.yml
     |   |-tensorboard events file
 --[models]
     |-Files with code for the models
+--[signal_processing]
+    |-Files with code for the initial processing of the ICP/ABP signals
 -utils.py:
     |-Dataset loader class, other utility functions
 -training_loop.py:
     |-Training loop with tensorboard hooks and saver
 -experiment_manager.py:
     |-Experiment management class, example of learning the network
--experiment_batch.py
+-multiexp.py
     |-Multiple experiments management structure
 -reformat_dataset.py
     |-Script for transforming raw dataset into training and testing datasets with unique id's and mapping
--Testing.ipynb
-    |-Notebook for model testing
 ```
 ## Create the dataset
 You need raw dataset in the datasets folder.
