@@ -10,3 +10,5 @@ results/
 old_experiments/
 .vscode/
 .flake8
+models/Lambdamodel.py
+*.ipynb

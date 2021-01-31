@@ -12,8 +12,33 @@ import matplotlib
 import pickle
 from scipy import interpolate
 import matplotlib.pyplot as plt
+import scipy
 from sklearn.metrics import confusion_matrix
+from tqdm import tqdm
 # from PyEMD import EMD
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+
+def rbfs(x, *params):
+    space = np.linspace(0, 1, 20)
+    sums = np.zeros(len(x))
+    for i in range(len(space)):
+        sums += params[i] * np.exp(np.power(x-space[i], 2))
+    return sums
+
+def get_rbf_coeff(x):
+    numpy_x = x.reshape(1, -1)
+    optimals = []
+    for i in range(numpy_x.shape[0]):
+        icp_row = numpy_x[i, :]
+        popt, pcov = scipy.optimize.curve_fit(rbfs, np.linspace(0, 1, 180), icp_row, p0 = np.zeros(20),
+                                                bounds = ([-10 for _ in range(20)],
+                                                        [10 for _ in range(20)]))
+        optimals.append(popt)
+    return optimals[0]+10/20
+
 
 class RunningAverageMeter(object):
     def __init__(self, momentum=0.99):
@@ -304,20 +329,24 @@ class PlotToImage:
 class resampling_dataset_loader(Dataset):
     def __init__(self, dataset_folder, transforms=None, full=True, normalize=True,
                     siamese=False, include_artificial_ae = False, artificial_ae_examples=2000,
-                    multilabel = False, multilabel_mapping_path = None, multilabel_labels_path = None):
+                    multilabel = False, multilabel_mapping_path = None, multilabel_labels_path = None,
+                    nucci = False):
         self.siamese = siamese
         self.multilabel = multilabel
         self.artificial_ae = include_artificial_ae
         self.normalize = normalize
+        self.nucci = nucci
         padding_minimum = 180
-
         self._create_classes_dict(multilabel_labels_path, multilabel_mapping_path)
-
+        
+        print("Loading files...")
         dataframes, self.labels, self.labels_ml = self._get_csv_dataframes_and_labels(dataset_folder,
                                                 multilabel_labels_path, full)
-
+        
+        print("Extracting data from {} files...".format(len(dataframes)))
         self.tensors, self.tensors_abp = self._get_tensors(dataframes, padding_minimum)
 
+        print("Creating {} artificial examples".format(artificial_ae_examples))
         if artificial_ae_examples is not None:
             self._create_artificial_ae_examples(artificial_ae_examples)
         else:
@@ -441,8 +470,7 @@ class resampling_dataset_loader(Dataset):
     def _get_tensors(self, dataframes, padding_minimum):
         tensors = []
         tensors_abp = []
-
-        for df in dataframes:
+        for df in tqdm(dataframes):
             data = df.iloc[:, 1:].values[:, 0]
 
             interp = interpolate.interp1d(np.arange(0, len(data), 1), data,
@@ -453,7 +481,12 @@ class resampling_dataset_loader(Dataset):
             if self.normalize:
                 data = data - np.min(data)
                 data = data / np.max(data)
-
+            try:
+                if self.nucci:
+                    data = get_rbf_coeff(data)
+            except:
+                data = np.zeros(20)
+                print("exception in data found")
             if self.siamese:
                 data_abp = df.iloc[:, 1:].values[:, 1]
                 interp_abp = interpolate.interp1d(np.arange(0, len(data_abp), 1), data_abp,
@@ -463,7 +496,9 @@ class resampling_dataset_loader(Dataset):
                     data_abp = data_abp - np.min(data_abp)
                     if np.max(data_abp) != 0:
                         data_abp = data_abp / np.max(data_abp)
-
+                
+                # if self.nucci:
+                #     data_abp = get_rbf_coeff(data_abp)
                 tensors_abp.append(torch.tensor(data_abp, dtype=torch.float))
 
             tensors.append(torch.tensor(data, dtype=torch.float))

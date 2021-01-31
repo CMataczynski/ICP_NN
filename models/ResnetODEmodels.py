@@ -42,7 +42,7 @@ class ODE(nn.Module):
         return 64
 
 class ResNet(nn.Module):
-    def __init__(self, no_classes, in_channels=1, ae=False):
+    def __init__(self, no_classes, in_channels=1, ae=False, depth=6):
         super().__init__()
         self.downsampling_layers = [
             nn.Conv1d(in_channels, 64, 3, 1),
@@ -50,7 +50,7 @@ class ResNet(nn.Module):
             ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
         ]
 
-        self.feature_layers = [ResBlock(64, 64) for _ in range(6)]
+        self.feature_layers = [ResBlock(64, 64) for _ in range(depth)]
         self.fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(1), Flatten(), nn.Dropout(0.6)]
         self.classification_layer = nn.Linear(64, no_classes)
         self.ae = ae

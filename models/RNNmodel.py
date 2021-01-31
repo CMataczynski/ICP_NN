@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from models.models_util import BlockLSTM, BlockFCN 
+from models.models_util import BlockLSTM, BlockFCN, ResBlock, conv1x1, norm
 
 
 class LSTM(nn.Module):
@@ -102,6 +102,48 @@ class LSTMFCN(nn.Module):
             x = x.unsqueeze(1)
         
         x2 = self.fcn_block(x)
+        x2 = torch.squeeze(x2)
+        if len(x2.shape) == 1:
+            x2 = x2.view(1, x2.size(0))
+        x = torch.cat([x1, x2], 1)
+        if not self.ae:
+            x = self.classification_layer(x)
+        # y = self.softmax(x)
+        return x
+
+
+class LSTMFRN(nn.Module):
+    def __init__(self, time_steps, num_variables=1, lstm_hs=64, in_channels = 1, ae=False):
+        super().__init__()
+        self.embed = 64 + lstm_hs
+        self.lstm_block = BlockLSTM(time_steps * in_channels, 1, lstm_hs)
+        self.downsampling_layers = [
+            nn.Conv1d(in_channels, 64, 3, 1),
+            ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+            ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+        ]
+
+        self.feature_layers = [ResBlock(64, 64) for _ in range(6)]
+        self.res_extractor = nn.Sequential(*self.downsampling_layers, *self.feature_layers,
+                                            norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool1d(1))
+        self.ae = ae
+        self.classification_layer = nn.Linear(64 + lstm_hs, num_variables)
+        # self.softmax = nn.LogSoftmax(dim=1)  # nn.Softmax(dim=1)
+
+    def embed_size(self):
+        return self.embed
+
+    def forward(self, x):
+        x_lstm = torch.reshape(x, (x.size(0), -1))
+        x_lstm = x_lstm.unsqueeze(1)
+        x1 = self.lstm_block(x_lstm)
+        x1 = torch.squeeze(x1)
+        if len(x1.shape) == 1:
+            x1 = x1.view(1, x1.size(0))
+        if len(x.shape) == 2:
+            x = x.unsqueeze(1)
+        
+        x2 = self.res_extractor(x)
         x2 = torch.squeeze(x2)
         if len(x2.shape) == 1:
             x2 = x2.view(1, x2.size(0))
