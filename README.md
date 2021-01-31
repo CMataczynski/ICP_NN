@@ -60,36 +60,5 @@ python experiment_manager.py
 ```
 or for batch learning
 ```
-python experiment_batch.py
+python multiexp.py
 ```
-## Testing the models
-To test the results, open anaconda prompt installing jupyter-notebook
-```
-conda install jupyterlab
-conda install ipywidgets
-```
-Then activate the extenstions by typing
-```
-jupyter nbextension enable --py widgetsnbextension
-```
-And run the notebook in the working directory of the project
-```
-cd working_directory
-jupyter-notebook
-```
-And open the testing, tweaking the folder names to run the contents properly. The sliders will allow you to test all the models.
-## Results
-To see the results, go to [the project Google Drive](https://drive.google.com/drive/folders/1IFwF1pn_IJrCovk3XIw8etag5nVL8veH?usp=sharing), and download the experiments folder to the working directory of the project. Then in anaconda run:
-```
-cd working_directory
-tensorboard --logdir experiments
-```
-And go to your browser typing (by default)
-```
-localhost:6006
-```
-To access the tensorboard. You can look up models there as well as their results or confusion matrices.
-
-## Visualization
-To visualize the classification and dataset analysis results, go to Visualisation.ipynb notebook, and run first, second and two last cells (one with loading the data and other with interactive displays). You will have to provide path to load the data from pickle, which can be found here:
-https://drive.google.com/file/d/1Zfo3VuIwvpI9TCNbNxTbHMVZslMh1nls/view?usp=sharing
