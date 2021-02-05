@@ -1,4 +1,4 @@
-# End-to-End Automatic Morphological Classification Method of Intracranial Pressure Pulse Waveforms Using Deep Learning
+# End-to-End Automatic Morphological Classification of Intracranial Pressure Pulse Waveforms Using Deep Learning
 
 ## Creating environment
 To create anaconda environment for this project you need to open Anaconda Prompt, change working directory to project folder and run the script
