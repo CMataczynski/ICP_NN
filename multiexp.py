@@ -11,7 +11,6 @@ from models.RNNmodel import LSTMFCN, LSTMFRN
 from models.SiameseModels import SiameseNeuralODE, SiameseResNet
 from models.ResnetODEmodels import ODE, ResNet
 from utils import resampling_dataset_loader, Memory_efficient_loader, learning_rate_with_decay
-from models.Lambdamodel import LambdaResNet
 import pandas as pd
 import numpy as np
 from torchvision.transforms import Compose, Lambda
