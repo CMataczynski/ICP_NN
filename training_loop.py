@@ -45,7 +45,7 @@ class Trainer:
         if leading_metric is not None:
             self.leading_metric = leading_metric
         else:
-            self.leading_metric = metrics.keys()[0]
+            self.leading_metric = list(metrics.keys())[0]
         #str - name of leading metric from metrics
         self.nfe_logging = nfe_logging
 
@@ -90,8 +90,9 @@ class Trainer:
         end = time.time()
 
         for itr in tqdm(range(number_of_epochs * batches_per_epoch)):
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = lr_fn(itr)
+            if lr_fn is not None:
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = lr_fn(itr)
 
             model.train()
             optimizer.zero_grad()
@@ -164,17 +165,18 @@ class Trainer:
                 preds += predicted.tolist()
                 labs += labels.tolist()
 
-        labs = [self.class_dict[a] for a in labs]
-        preds = [self.class_dict[a] for a in preds]
-        other_metrics = [[metric, [self.metrics[metric](labs, preds)]] for metric in self.metrics if metric is not self.leading_metric]
         torch.save({'state_dict': model.state_dict()},
                     os.path.join(os.getcwd(), "experiments",
                             name, 'model_last.pth'))
         try:
+            labs = [self.class_dict[a] for a in labs]
+            preds = [self.class_dict[a] for a in preds]
+            other_metrics = [[metric, [self.metrics[metric](labs, preds)]] for metric in self.metrics if metric is not self.leading_metric]    
             writer.add_figure(name + " - Confusion Matrix",
                             plot_confusion_matrix(labs, preds,
                           [self.class_dict[key] for key in self.class_dict.keys()]))
         except:
+            other_metrics = []
             pass 
         writer.close()
         return [self.leading_metric, [best_leading_metric]], other_metrics

@@ -10,7 +10,8 @@ from models.FCmodel import FCmodel
 from models.RNNmodel import LSTMFCN, LSTMFRN
 from models.SiameseModels import SiameseNeuralODE, SiameseResNet
 from models.ResnetODEmodels import ODE, ResNet
-from utils import resampling_dataset_loader, Memory_efficient_loader, learning_rate_with_decay
+from models.ArtifactReprod import CNNClassifier, CAE
+from utils import resampling_dataset_loader, Memory_efficient_loader, learning_rate_with_decay, reproduction_loader, ApplyGaussianNoise
 import pandas as pd
 import numpy as np
 from torchvision.transforms import Compose, Lambda
@@ -50,16 +51,21 @@ PRETRAINING
 TRAINING
 '''
 length = 100
-dataset = "full_siamese_dataset"
+# dataset = "full_siamese_dataset_extended_oldaeremoved"
+dataset = "Classification_reproduction_new"
 datasets = os.path.join(os.getcwd(), "datasets", dataset)
 train_dataset_path = os.path.join(datasets, "train")
-mapping_path = os.path.join(os.getcwd(), "datasets", "full_siamese_dataset_to_full_extended_dataset_mapping.csv")
-labels_path = os.path.join(os.getcwd(), "datasets", "train_corrections.csv")
-train_dataset = resampling_dataset_loader(train_dataset_path, siamese=True,
-                    multilabel_mapping_path=mapping_path, multilabel_labels_path=labels_path, nucci=False)
+# mapping_path = os.path.join(os.getcwd(), "datasets", "full_siamese_dataset_extended_oldaeremoved_to_full_extended_dataset_mapping.csv")
+# labels_path = os.path.join(os.getcwd(), "datasets", "train_corrections.csv")
+# train_dataset = resampling_dataset_loader(train_dataset_path, siamese=True,
+#                     multilabel_mapping_path=mapping_path, multilabel_labels_path=labels_path, nucci=False)
+train_dataset = reproduction_loader(train_dataset_path, classification=True)
+# train_dataset = reproduction_loader(train_dataset_path, transforms=ApplyGaussianNoise)
 test_dataset_path = os.path.join(datasets, "test")
-test_dataset = resampling_dataset_loader(test_dataset_path, siamese=True,
-                    multilabel_mapping_path=mapping_path, multilabel_labels_path=labels_path, nucci=False)
+# test_dataset = resampling_dataset_loader(test_dataset_path, siamese=True,
+#                     multilabel_mapping_path=mapping_path, multilabel_labels_path=labels_path, nucci=False)
+test_dataset = reproduction_loader(test_dataset_path, classification=True)
+# test_dataset = reproduction_loader(test_dataset_path, transforms=ApplyGaussianNoise)
 
 experiments = [
     # {
@@ -154,36 +160,36 @@ experiments = [
     #         "transforms": None
     #     }
     # },
-    {
-        "model": ResNet(5),
-        "pretrained": False,
-        "pretraining_path": None,
-        "name_full": "ResNet",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
-        "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
-        "manager": {
-            "pretraining": False,
-            "metrics": {
-                "Accuracy": accuracy_score,
-                "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
-            },
-            "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
-            "test_dataset": test_dataset,
-            "loader_size": 256,
-            "normalize": True,
-            "nfe_logging": False,
-            "loss_preprocessing": None,
-            "leading_metric": "Accuracy",
-            "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
-        },
-        "dataset": {
-            "siamese": False,
-            "multilabel": False,
-            "include_artificial_ae": True,
-            "transforms": None
-        }
-    },
+    # {
+    #     "model": ResNet(5),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "ResNet",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
+    #     "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "Accuracy": accuracy_score,
+    #             "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": "Accuracy",
+    #         "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
+    #     },
+    #     "dataset": {
+    #         "siamese": False,
+    #         "multilabel": False,
+    #         "include_artificial_ae": True,
+    #         "transforms": None
+    #     }
+    # },
     # {
     #     "model": CNN(5),
     #     "pretrained": False,
@@ -860,14 +866,188 @@ experiments = [
     #         "transforms": None
     #     }
     # },
+    # {
+    #     "model": ResNet(5, depth=5),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "ResNet_d5",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
+    #     "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "Accuracy": accuracy_score,
+    #             "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": "Accuracy",
+    #         "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
+    #     },
+    #     "dataset": {
+    #         "siamese": False,
+    #         "multilabel": False,
+    #         "include_artificial_ae": True,
+    #         "transforms": None
+    #     }
+    # },
+    # {
+    #     "model": ResNet(5, depth=4),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "ResNet_d4",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
+    #     "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "Accuracy": accuracy_score,
+    #             "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": "Accuracy",
+    #         "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
+    #     },
+    #     "dataset": {
+    #         "siamese": False,
+    #         "multilabel": False,
+    #         "include_artificial_ae": True,
+    #         "transforms": None
+    #     }
+    # },
+    # {
+    #     "model": ResNet(5, depth=3),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "ResNet_d3",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
+    #     "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "Accuracy": accuracy_score,
+    #             "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": "Accuracy",
+    #         "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
+    #     },
+    #     "dataset": {
+    #         "siamese": False,
+    #         "multilabel": False,
+    #         "include_artificial_ae": True,
+    #         "transforms": None
+    #     }
+    # },
+    # {
+    #     "model": ResNet(5, depth=2),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "ResNet_d2",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
+    #     "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "Accuracy": accuracy_score,
+    #             "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": "Accuracy",
+    #         "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
+    #     },
+    #     "dataset": {
+    #         "siamese": False,
+    #         "multilabel": False,
+    #         "include_artificial_ae": True,
+    #         "transforms": None
+    #     }
+    # },
+    # {
+    #     "model": ResNet(5, depth=1),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "ResNet_d1",
+    #     "criterion": nn.CrossEntropyLoss(),
+    #     "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
+    #     "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "Accuracy": accuracy_score,
+    #             "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": "Accuracy",
+    #         "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
+    #     },
+    #     "dataset": {
+    #         "siamese": False,
+    #         "multilabel": False,
+    #         "include_artificial_ae": True,
+    #         "transforms": None
+    #     }
+    # },
+    # {
+    #     "model": CAE(),
+    #     "pretrained": False,
+    #     "pretraining_path": None,
+    #     "name_full": "CAE",
+    #     "criterion": nn.MSELoss(),
+    #     "optimizer": lambda x: torch.optim.Adam(x),
+    #     "scheduler": None,
+    #     "manager": {
+    #         "pretraining": False,
+    #         "metrics": {
+    #             "TestLoss": lambda a,b :(np.square(np.array(a) - np.array(b))).mean(axis=None),
+    #             # "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
+    #         },
+    #         "o2p_fcn": lambda x: x,
+    #         "test_dataset": test_dataset,
+    #         "loader_size": 256,
+    #         "normalize": True,
+    #         "nfe_logging": False,
+    #         "loss_preprocessing": None,
+    #         "leading_metric": None,
+    #         "input_preprocessing": lambda x: x
+    #     }
+    # },
     {
-        "model": ResNet(5, depth=5),
+        "model": CNNClassifier(),
         "pretrained": False,
         "pretraining_path": None,
-        "name_full": "ResNet_d5",
+        "name_full": "CNNClass",
         "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
-        "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
+        "optimizer": lambda x: torch.optim.Adam(x),
+        "scheduler": None,
         "manager": {
             "pretraining": False,
             "metrics": {
@@ -881,140 +1061,14 @@ experiments = [
             "nfe_logging": False,
             "loss_preprocessing": None,
             "leading_metric": "Accuracy",
-            "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
-        },
-        "dataset": {
-            "siamese": False,
-            "multilabel": False,
-            "include_artificial_ae": True,
-            "transforms": None
-        }
-    },
-    {
-        "model": ResNet(5, depth=4),
-        "pretrained": False,
-        "pretraining_path": None,
-        "name_full": "ResNet_d4",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
-        "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
-        "manager": {
-            "pretraining": False,
-            "metrics": {
-                "Accuracy": accuracy_score,
-                "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
-            },
-            "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
-            "test_dataset": test_dataset,
-            "loader_size": 256,
-            "normalize": True,
-            "nfe_logging": False,
-            "loss_preprocessing": None,
-            "leading_metric": "Accuracy",
-            "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
-        },
-        "dataset": {
-            "siamese": False,
-            "multilabel": False,
-            "include_artificial_ae": True,
-            "transforms": None
-        }
-    },
-    {
-        "model": ResNet(5, depth=3),
-        "pretrained": False,
-        "pretraining_path": None,
-        "name_full": "ResNet_d3",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
-        "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
-        "manager": {
-            "pretraining": False,
-            "metrics": {
-                "Accuracy": accuracy_score,
-                "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
-            },
-            "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
-            "test_dataset": test_dataset,
-            "loader_size": 256,
-            "normalize": True,
-            "nfe_logging": False,
-            "loss_preprocessing": None,
-            "leading_metric": "Accuracy",
-            "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
-        },
-        "dataset": {
-            "siamese": False,
-            "multilabel": False,
-            "include_artificial_ae": True,
-            "transforms": None
-        }
-    },
-    {
-        "model": ResNet(5, depth=2),
-        "pretrained": False,
-        "pretraining_path": None,
-        "name_full": "ResNet_d2",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
-        "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
-        "manager": {
-            "pretraining": False,
-            "metrics": {
-                "Accuracy": accuracy_score,
-                "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
-            },
-            "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
-            "test_dataset": test_dataset,
-            "loader_size": 256,
-            "normalize": True,
-            "nfe_logging": False,
-            "loss_preprocessing": None,
-            "leading_metric": "Accuracy",
-            "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
-        },
-        "dataset": {
-            "siamese": False,
-            "multilabel": False,
-            "include_artificial_ae": True,
-            "transforms": None
-        }
-    },
-    {
-        "model": ResNet(5, depth=1),
-        "pretrained": False,
-        "pretraining_path": None,
-        "name_full": "ResNet_d1",
-        "criterion": nn.CrossEntropyLoss(),
-        "optimizer": lambda x: torch.optim.SGD(x, lr=0.01, momentum=0.95, nesterov=True),
-        "scheduler": learning_rate_with_decay(0.01, 256, 256, length, boundary_epochs=[33, 66], decay_rates=[1, 0.1, 0.01]),
-        "manager": {
-            "pretraining": False,
-            "metrics": {
-                "Accuracy": accuracy_score,
-                "F1_Score": lambda labels, preds: f1_score(labels, preds, average="weighted")
-            },
-            "o2p_fcn": lambda x: np.argmax(x.cpu().detach().numpy(), axis=1),
-            "test_dataset": test_dataset,
-            "loader_size": 256,
-            "normalize": True,
-            "nfe_logging": False,
-            "loss_preprocessing": None,
-            "leading_metric": "Accuracy",
-            "input_preprocessing": lambda x: [a.unsqueeze(1) for a in x]
-        },
-        "dataset": {
-            "siamese": False,
-            "multilabel": False,
-            "include_artificial_ae": True,
-            "transforms": None
+            "input_preprocessing": lambda x: x
         }
     },
     ]
     
 
 if __name__ == "__main__":
-    batch_name = str(dt.date.today()) + "_Tryout_"
+    batch_name = str(dt.date.today()) + "_reprod_"
     log = []
     reproducability = True
 
@@ -1030,14 +1084,14 @@ if __name__ == "__main__":
         # try:
         name_full = batch_name + experiment["name_full"]
         model = experiment["model"]
-        train_dataset.set_parameters(siamese=experiment["dataset"]["siamese"],
-                            multilabel=experiment["dataset"]["multilabel"],
-                            include_artificial_ae=experiment["dataset"]["include_artificial_ae"],
-                            transforms=experiment["dataset"]["transforms"])
-        test_dataset.set_parameters(siamese=experiment["dataset"]["siamese"],
-                            multilabel=experiment["dataset"]["multilabel"],
-                            include_artificial_ae=experiment["dataset"]["include_artificial_ae"],
-                            transforms=experiment["dataset"]["transforms"])
+        # train_dataset.set_parameters(siamese=experiment["dataset"]["siamese"],
+        #                     multilabel=experiment["dataset"]["multilabel"],
+        #                     include_artificial_ae=experiment["dataset"]["include_artificial_ae"],
+        #                     transforms=experiment["dataset"]["transforms"])
+        # test_dataset.set_parameters(siamese=experiment["dataset"]["siamese"],
+        #                     multilabel=experiment["dataset"]["multilabel"],
+        #                     include_artificial_ae=experiment["dataset"]["include_artificial_ae"],
+        #                     transforms=experiment["dataset"]["transforms"])
         if experiment["pretrained"]:
             model.load_state_dict(torch.load(experiment["pretraining_path"])['state_dict'])
             for param in model.feature_extractor.parameters():
@@ -1052,7 +1106,6 @@ if __name__ == "__main__":
                         test_dataset=experiment["manager"]["test_dataset"],
                         scheduler=scheduler,
                         loader_size=experiment["manager"]["loader_size"],
-                        normalize=experiment["manager"]["normalize"],
                         nfe_logging=experiment["manager"]["nfe_logging"],
                         loss_preprocessing=experiment["manager"]["loss_preprocessing"],
                         leading_metric=experiment["manager"]["leading_metric"],

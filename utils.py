@@ -19,8 +19,6 @@ from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-
 def rbfs(x, *params):
     space = np.linspace(0, 1, 20)
     sums = np.zeros(len(x))
@@ -403,7 +401,7 @@ class resampling_dataset_loader(Dataset):
         self.length = len(self.whole_set['id'])
 
     def _create_classes_dict(self, multilabel_labels_path, multilabel_mapping_path):
-        classes_dict = [None]
+        classes_dict = None
         if multilabel_labels_path is not None:
             ml_labels = pd.read_csv(multilabel_labels_path)
 
@@ -416,8 +414,12 @@ class resampling_dataset_loader(Dataset):
                 pulse_primary = row["PRIMARY"]
                 pulse_secondary = row["SECONDARY"]
                 if multilabel_mapping_path is not None:
-                    pulse_name = ml_mapping.query("extended_name == \'" + pulse_name + "\'")["siam_name"]
+                    # print(pulse_name)
+                    p_name = ml_mapping.query("extended_name == \'" + pulse_name + "\'")["siam_name"]
+                    if len(p_name) > 0:
+                        pulse_name = p_name
                 if not isinstance(pulse_name, str):
+                    # print(pulse_name)
                     pulse_name = pulse_name.values[0]
                 classes_dict[pulse_name] = (pulse_primary, pulse_secondary)
 
@@ -688,3 +690,59 @@ class Memory_efficient_loader(Dataset):
             return {
                 "data_icp": icps
                 }
+                
+class reproduction_loader(Dataset):
+    def __init__(self, dataset_folder, transforms=None, classification=False):
+        self.dataset_folder = dataset_folder
+        with open(os.path.join(dataset_folder, "dataset.pkl"), 'rb') as handle:
+            dset = pickle.load(handle)
+        images = []
+        labels = []
+        for entry in dset:
+            images.append(entry["image"])
+            if classification:
+                labels.append(entry["label"])
+            else:
+                labels.append(entry["image"])
+        
+        self.length = len(images)
+        images = torch.tensor(images, dtype=torch.float)
+        if classification:
+            labels = torch.tensor(labels, dtype=torch.long)
+        else:
+            labels = torch.tensor(labels, dtype=torch.float)
+        self.whole_set = {
+            "data": images,
+            "label": labels 
+        }
+        self.classification = classification
+        self.transforms = transforms
+
+    def get_dataset(self):
+        return self.whole_set
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        label = None
+        data_icp = self.whole_set['data'][idx].unsqueeze(0)
+        
+        if self.transforms is not None:
+            data_icp = self.transforms(data_icp)
+        label = self.whole_set['label'][idx].clone().detach()
+        if not self.classification:
+            label = label.unsqueeze(0)
+
+        return {
+            "data_icp": data_icp,
+            "label": label
+        }
+
+def ApplyGaussianNoise(image, std_range = (0.1, 0.33)):
+    std = (std_range[1] - std_range[0]) * np.random.rand() + std_range[0]
+    noisy = image + torch.normal(torch.zeros(image.shape), std)
+    noisy = torch.clip(noisy, 0, 1)
+    return noisy

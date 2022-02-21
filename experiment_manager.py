@@ -12,7 +12,7 @@ leading_metric=None, scheduler=None, nfe_logging = False
 class Manager:
     def __init__(self, experiment_name, model, train_dataset, criterion,
                 optimizer, metrics=None, output_to_pred_fcn=None, test_dataset=None,
-                scheduler=None, loader_size=256, normalize=True, nfe_logging = False,
+                scheduler=None, loader_size=256, nfe_logging = False,
                 loss_preprocessing = None, leading_metric = None,
                 class_dict = {0: "T1", 1: "T2", 2: "T3", 3: "T4", 4: "AE"},
                 pretraining = False, input_preprocessing=None): 
